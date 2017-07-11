@@ -34,3 +34,4 @@ vignettes/*.pdf
 
 Gemfile.lock
 _site*
+.Rproj.user
