@@ -1,3 +1,14 @@
+---
+layout: post
+title: Test plots
+---
+
+{{ page.title }}
+================
+
+<p class="meta">12 July 17 Grenoble</p>
+
+
 R Markdown
 ----------
 
