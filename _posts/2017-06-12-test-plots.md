@@ -1,6 +1,3 @@
-test\_plot
-================
-
 R Markdown
 ----------
 
@@ -25,7 +22,7 @@ Including Plots
 
 You can also embed plots, for example:
 
-![](2017-06-12-test-plots_files/figure-markdown_github-ascii_identifiers/pressure-1.png)
+![](2017-06-12-test-plots_files/figure-markdown_github/pressure-1.png)
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
@@ -37,4 +34,4 @@ bp <- ggplot(data=PlantGrowth, aes(x=group, y=weight, fill=group)) + geom_boxplo
 bp
 ```
 
-![](2017-06-12-test-plots_files/figure-markdown_github-ascii_identifiers/ggplot2-1.png)
+![](2017-06-12-test-plots_files/figure-markdown_github/ggplot2-1.png)
