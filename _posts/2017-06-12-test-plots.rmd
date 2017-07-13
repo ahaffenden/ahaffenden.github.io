@@ -1,8 +1,7 @@
 ---
 title: "test_plot"
 output:   
-  md_document:
-    variant: markdown_github
+ github_document
 ---
 
 ```{r setup, include=FALSE}
