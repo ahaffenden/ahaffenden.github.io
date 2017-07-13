@@ -1,11 +1,10 @@
 ---
 layout: post
-title: Test plots
+title: How I ...
 ---
 
 {{ page.title }}
 ================
 
-<p class="meta">12 May 17 Grenoble</p>
-
+<p class="meta">12 July 17 Grenoble</p>
 
