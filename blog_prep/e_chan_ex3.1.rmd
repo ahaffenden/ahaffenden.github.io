@@ -1,0 +1,126 @@
+---
+title: "echan_ex3.1"
+author: "Austin Haffenden"
+date: "July 14, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Scrape web pags for financial data 
+
+This is the first in a series of posts that will convert the MATLAB scripts 
+from E Chan's book 'Quantative Trading: How to Build Your Own Algorithmic
+Trading Business'. 
+
+The following code will be used to retrieve a stock's historical price 
+information from Yahoo! Finance
+
+```{r clear}
+rm(list = ls) # clear the workspace
+library(httr)
+library(quantmod)
+
+```
+
+```{r read_page}
+
+symbol <- "IBM" # the stock of interest
+in_url <- paste0('http://finance.yahoo.com/q/hp?s=',  symbol)
+
+# retrieving a webpage
+histPriceFile_page <-GET(url)
+
+# convert to a list
+histPriceFile <- readHTMLTable(rawToChar(histPriceFile_page$content), 
+                               stringsAsFactors = F)
+
+# extract what we want from the list - the second element
+histPriceFile_df <- histPriceFile[[2]]
+
+# view the contents
+histPriceFile_df
+
+```
+
+# Now further to E Chan we will pre-process this data to remove the row that contains a dividend (May 08 2017) and to fill the gaps in the data caused by the weekends. 
+```{r preprocess}
+
+# remove strange characters from the column names
+colnames(histPriceFile_df) <- c("Date", "Open", "High", "Low", "Close", "Adj_Close", "Volume")
+
+# to remove any rows containing the word Dividend in Open
+histPriceFile_df <- histPriceFile_df[!grepl("Dividend", 
+                                            histPriceFile_df$Open),]
+
+# currently the data is stored as chars - convert all columns except
+# for the date to numeric
+histPriceFile_df$Volume <- gsub(",", "", histPriceFile_df$Volume)
+  
+# rejoin all to a new df
+hiPriFi_df  <- histPriceFile_df
+hiPriFi_df[, -1] <- apply(histPriceFile_df[,-1], 2, as.numeric)
+
+# convert the char date to a numeric and straighforward format
+num_date <- function(in_date) {
+  
+  in_month <- strsplit(in_date, " ")[[1]][1]
+  out_month <- match(in_month, month.abb)
+  
+  in_day <- strsplit(in_date, " ")[[1]][2]
+  in_year <- strsplit(in_date, " ")[[1]][3]
+
+  out_date <- paste(in_day, out_month, in_year, sep = "/")
+  return(out_date)
+}
+
+# remove the comma from the Date column
+hiPriFi_df$Date <-gsub(",", "", histPriceFile_df$Date)
+
+# apply the function over all the dates
+dates <- unlist(sapply(hiPriFi_df$Date, num_date, 
+                simplify = FALSE,
+                USE.NAMES = FALSE))
+
+# update the dataframe and convert to a date
+hiPriFi_df$Date <- dates
+hiPriFi_df$Date <- as.Date(hiPriFi_df$Date, format = "%d/%m/%Y")
+
+# get the max and min date from the dataframe
+max_date <- max(hiPriFi_df$Date)
+min_date <- min(hiPriFi_df$Date) 
+
+# create a sequence of dates from min to max
+all_dates <- data.frame(Date=seq(min_date, max_date, by="days"))
+
+# combine the two dataframes so that all dates are included
+# the missing dates now hav NA values
+all_dates_df <- merge(hiPriFi_df, all_dates, 
+                      by.x='Date',by.y='Date',all.x=T,all.y=T)
+
+```
+
+```{r fill_TS}
+# to forward and backfill the weekend gaps
+
+# various methods have been suggested and the library imputeTS has various
+# functions: na.interpolation, na.locf and na.kalman; each with different 
+# settings. 
+
+# I have been advised that last value forwards and backwards (50% each way)
+# is the best method to use for machine learning methods with financial time # series though I would like to test the various possibilities
+
+
+
+
+
+```
+
+# Now let us plot the data to have a look at it
+```{r ohlc_plot}
+all_dates_xts <- xts(all_dates_df[,-1], order.by = all_dates_df[,1])
+
+candleChart(all_dates_xts)
+
+```
