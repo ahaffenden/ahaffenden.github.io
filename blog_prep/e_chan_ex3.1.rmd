@@ -1,8 +1,9 @@
 ---
-title: "echan_ex3.1"
+title: "echan_ex3.1: Scrape IBM data from Yahoo"
 author: "Austin Haffenden"
 date: "July 14, 2017"
-output: html_document
+output: md_document:
+    variant: markdown_github
 ---
 
 ```{r setup, include=FALSE}
@@ -17,11 +18,12 @@ Trading Business'.
 The following code will be used to retrieve a stock's historical price 
 information from Yahoo! Finance
 
-```{r clear}
+```{r cl_libs}
 rm(list = ls()) # clear the workspace
 library(httr)
 library(quantmod)
 library(XML)
+library(dplyr)
 
 ```
 
@@ -41,27 +43,46 @@ histPriceFile <- readHTMLTable(rawToChar(histPriceFile_page$content),
 histPriceFile_df <- histPriceFile[[2]]
 
 # view the contents
-histPriceFile_df
+head(histPriceFile_df)
 
 ```
+Now further to the E Chan example we will process this data to:
+- standardise the colnames without any random characters
+- convert it to the dplyr::tbl_df format to ease manipulations
+- convert the date to the R date format
+- remove any rows that contain dividends (May 08 2017 in this case)
+- fill the gaps in the data (e.g. weekends) 
 
-# Now further to E Chan we will pre-process this data to remove the row that contains a dividend (May 08 2017) and to fill the gaps in the data caused by the weekends. 
-```{r preprocess}
-
+```{r names_and_df}
 # remove strange characters from the column names
-colnames(histPriceFile_df) <- c("Date", "Open", "High", "Low", "Close", "Adj_Close", "Volume")
+colnames(hpf_tbl_df) <- c("Date", "Open", "High", "Low", "Close", "Adj_Close", "Volume")
+
+# for ease of later use convert to dplyr::tbl_df
+hpf_tbl_df <- tbl_df(histPriceFile_df)
+hpf_tbl_df
+```
+
+And that is pretty much it for this example. There are other operations that need to be carried out but I will continue them in other blog posts as I want to keep the echan examples as stand alone items. So for now you can save the data to csv file:
+
+
+or 
+
+
+```{r pre_date}
+
+
 
 # to remove any rows containing the word Dividend in Open
-histPriceFile_df <- histPriceFile_df[!grepl("Dividend", 
-                                            histPriceFile_df$Open),]
+hpf_tbl_df <- hpf_tbl_df[!grepl("Dividend", 
+                                            hpf_tbl_df$Open),]
 
 # currently the data is stored as chars - convert all columns except
 # for the date to numeric
-histPriceFile_df$Volume <- gsub(",", "", histPriceFile_df$Volume)
+hpf_tbl_df$Volume <- gsub(",", "", hpf_tbl_df$Volume)
   
 # rejoin all to a new df
-hiPriFi_df  <- histPriceFile_df
-hiPriFi_df[, -1] <- apply(histPriceFile_df[,-1], 2, as.numeric)
+hiPriFi_df  <- hpf_tbl_df
+hiPriFi_df[, -1] <- apply(hpf_tbl_df[,-1], 2, as.numeric)
 
 # convert the char date to a numeric and straighforward format
 num_date <- function(in_date) {
@@ -77,7 +98,7 @@ num_date <- function(in_date) {
 }
 
 # remove the comma from the Date column
-hiPriFi_df$Date <-gsub(",", "", histPriceFile_df$Date)
+hiPriFi_df$Date <-gsub(",", "", hpf_tbl_df$Date)
 
 # apply the function over all the dates
 dates <- unlist(sapply(hiPriFi_df$Date, num_date, 
@@ -87,6 +108,9 @@ dates <- unlist(sapply(hiPriFi_df$Date, num_date,
 # update the dataframe and convert to a date
 hiPriFi_df$Date <- dates
 hiPriFi_df$Date <- as.Date(hiPriFi_df$Date, format = "%d/%m/%Y")
+
+
+
 
 # get the max and min date from the dataframe
 max_date <- max(hiPriFi_df$Date)
