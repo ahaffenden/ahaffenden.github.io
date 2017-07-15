@@ -18,9 +18,10 @@ The following code will be used to retrieve a stock's historical price
 information from Yahoo! Finance
 
 ```{r clear}
-rm(list = ls) # clear the workspace
+rm(list = ls()) # clear the workspace
 library(httr)
 library(quantmod)
+library(XML)
 
 ```
 
@@ -30,7 +31,7 @@ symbol <- "IBM" # the stock of interest
 in_url <- paste0('http://finance.yahoo.com/q/hp?s=',  symbol)
 
 # retrieving a webpage
-histPriceFile_page <-GET(url)
+histPriceFile_page <-GET(in_url)
 
 # convert to a list
 histPriceFile <- readHTMLTable(rawToChar(histPriceFile_page$content), 
