@@ -1,10 +1,3 @@
----
-layout: post
-title: "E Chan Quant Trading Ex. 3.1"
-date: 2017-07-16
-tags: Quant Exercises, Scrape
----
-
 Scrape web pags for financial data
 ----------------------------------
 
@@ -17,7 +10,6 @@ rm(list = ls()) # clear the workspace
 library(httr)
 library(quantmod)
 library(XML)
-library(dplyr)
 ```
 
 ``` r

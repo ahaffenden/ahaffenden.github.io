@@ -23,8 +23,6 @@ rm(list = ls()) # clear the workspace
 library(httr)
 library(quantmod)
 library(XML)
-library(dplyr)
-
 ```
 
 ```{r read_page}
