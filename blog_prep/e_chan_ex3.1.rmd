@@ -1,8 +1,9 @@
 ---
 title: "echan_ex3.1: Scrape IBM data from Yahoo"
 author: "Austin Haffenden"
-date: "July 14, 2017"
-output: md_document:
+date: '`r Sys.Date()`'
+output: 
+  md_document:
     variant: markdown_github
 ---
 
@@ -47,31 +48,25 @@ head(histPriceFile_df)
 
 ```
 Now further to the E Chan example we will process this data to:
-- standardise the colnames without any random characters
 - convert it to the dplyr::tbl_df format to ease manipulations
-- convert the date to the R date format
+- standardise the colnames without any random characters
 - remove any rows that contain dividends (May 08 2017 in this case)
+- convert the date to the R date format
 - fill the gaps in the data (e.g. weekends) 
 
+# Convert to table dataframe (dplyr) and standardise the column names
 ```{r names_and_df}
-# remove strange characters from the column names
-colnames(hpf_tbl_df) <- c("Date", "Open", "High", "Low", "Close", "Adj_Close", "Volume")
-
 # for ease of later use convert to dplyr::tbl_df
 hpf_tbl_df <- tbl_df(histPriceFile_df)
 hpf_tbl_df
+
+# remove strange characters from the column names
+colnames(hpf_tbl_df) <- c("Date", "Open", "High", "Low", "Close", "Adj_Close", "Volume")
+
 ```
 
-And that is pretty much it for this example. There are other operations that need to be carried out but I will continue them in other blog posts as I want to keep the echan examples as stand alone items. So for now you can save the data to csv file:
-
-
-or 
-
-
+# Remove the rows containing dividends and convert the date column to Date format
 ```{r pre_date}
-
-
-
 # to remove any rows containing the word Dividend in Open
 hpf_tbl_df <- hpf_tbl_df[!grepl("Dividend", 
                                             hpf_tbl_df$Open),]
@@ -108,10 +103,26 @@ dates <- unlist(sapply(hiPriFi_df$Date, num_date,
 # update the dataframe and convert to a date
 hiPriFi_df$Date <- dates
 hiPriFi_df$Date <- as.Date(hiPriFi_df$Date, format = "%d/%m/%Y")
+```
 
+# Fill in the missing days (e.g weekends)
 
+I have been advised that last value forwards and backwards (50% each way)
+is the best method to use for machine learning methods with financial time 
+series data. However various methods are available to forward and backfill the 
+gaps and the library imputeTS has various functions: na.interpolation, na.locf 
+and na.kalman. 
 
+At present I have no solid rationale for choosing one method over another. There 
+is plenty of discussion and this thesis was highlighted in one of them:
+http://lib.tkk.fi/Diss/2010/isbn9789526034539/isbn9789526034539.pdf
 
+Hopefully I will get time to compare methods as implementations progress. 
+
+# Fill missing days with last value forwards and backwards (50% split)
+
+```{r missing}
+# To add the missing days
 # get the max and min date from the dataframe
 max_date <- max(hiPriFi_df$Date)
 min_date <- min(hiPriFi_df$Date) 
@@ -126,18 +137,21 @@ all_dates_df <- merge(hiPriFi_df, all_dates,
 
 ```
 
+The best solution to the fill I can find is to:
+- count the number of rows for each gap
+- add that value as a column
+- fill forwards half
+- fill backwards half
+
 ```{r fill_TS}
-# to forward and backfill the weekend gaps
+# add a column to the data with the number of gaps
 
-# various methods have been suggested and the library imputeTS has various
-# functions: na.interpolation, na.locf and na.kalman; each with different 
-# settings. 
+# fill forwards with half the number of gaps
 
-# I have been advised that last value forwards and backwards (50% each way)
-# is the best method to use for machine learning methods with financial time # series though I would like to test the various possibilities
+# fill backwards with number of gaps
 
-
-
+https://stackoverflow.com/questions/16820072/length-of-trend-panel-data/16820379#16820379
+https://stackoverflow.com/questions/16842163/consecutive-nas-in-a-column
 
 
 ```
