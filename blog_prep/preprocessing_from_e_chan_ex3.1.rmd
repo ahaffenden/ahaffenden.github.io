@@ -1,0 +1,130 @@
+---
+title: "echan_ex3.1: Scrape IBM data from Yahoo"
+author: "Austin Haffenden"
+date: '`r Sys.Date()`'
+output: 
+  md_document:
+    variant: markdown_github
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## SPreprocess the E Chan Ex3.1 data (yahoo IBM)
+
+Now further to the E Chan example we will process this data to:
+- convert it to the dplyr::tbl_df format to ease manipulations
+- standardise the colnames without any random characters
+- remove any rows that contain dividends (May 08 2017 in this case)
+- convert the date to the R date format
+- fill the gaps in the data (e.g. weekends) 
+
+# Convert to table dataframe (dplyr) and standardise the column names
+```{r names_and_df}
+# for ease of later use convert to dplyr::tbl_df
+hpf_tbl_df <- tbl_df(histPriceFile_df)
+hpf_tbl_df
+
+# remove strange characters from the column names
+colnames(hpf_tbl_df) <- c("Date", "Open", "High", "Low", "Close", "Adj_Close", "Volume")
+
+```
+
+# Remove the rows containing dividends and convert the date column to Date format
+```{r pre_date}
+# to remove any rows containing the word Dividend in Open
+hpf_tbl_df <- hpf_tbl_df[!grepl("Dividend", 
+                                            hpf_tbl_df$Open),]
+
+# currently the data is stored as chars - convert all columns except
+# for the date to numeric
+hpf_tbl_df$Volume <- gsub(",", "", hpf_tbl_df$Volume)
+  
+# rejoin all to a new df
+hiPriFi_df  <- hpf_tbl_df
+hiPriFi_df[, -1] <- apply(hpf_tbl_df[,-1], 2, as.numeric)
+
+# convert the char date to a numeric and straighforward format
+num_date <- function(in_date) {
+  
+  in_month <- strsplit(in_date, " ")[[1]][1]
+  out_month <- match(in_month, month.abb)
+  
+  in_day <- strsplit(in_date, " ")[[1]][2]
+  in_year <- strsplit(in_date, " ")[[1]][3]
+
+  out_date <- paste(in_day, out_month, in_year, sep = "/")
+  return(out_date)
+}
+
+# remove the comma from the Date column
+hiPriFi_df$Date <-gsub(",", "", hpf_tbl_df$Date)
+
+# apply the function over all the dates
+dates <- unlist(sapply(hiPriFi_df$Date, num_date, 
+                simplify = FALSE,
+                USE.NAMES = FALSE))
+
+# update the dataframe and convert to a date
+hiPriFi_df$Date <- dates
+hiPriFi_df$Date <- as.Date(hiPriFi_df$Date, format = "%d/%m/%Y")
+```
+
+# Fill in the missing days (e.g weekends)
+
+I have been advised that last value forwards and backwards (50% each way)
+is the best method to use for machine learning methods with financial time 
+series data. However various methods are available to forward and backfill the 
+gaps and the library imputeTS has various functions: na.interpolation, na.locf 
+and na.kalman. 
+
+At present I have no solid rationale for choosing one method over another. There 
+is plenty of discussion and this thesis was highlighted in one of them:
+http://lib.tkk.fi/Diss/2010/isbn9789526034539/isbn9789526034539.pdf
+
+Hopefully I will get time to compare methods as implementations progress. 
+
+# Fill missing days with last value forwards and backwards (50% split)
+
+```{r missing}
+# To add the missing days
+# get the max and min date from the dataframe
+max_date <- max(hiPriFi_df$Date)
+min_date <- min(hiPriFi_df$Date) 
+
+# create a sequence of dates from min to max
+all_dates <- data.frame(Date=seq(min_date, max_date, by="days"))
+
+# combine the two dataframes so that all dates are included
+# the missing dates now hav NA values
+all_dates_df <- merge(hiPriFi_df, all_dates, 
+                      by.x='Date',by.y='Date',all.x=T,all.y=T)
+
+```
+
+The best solution to the fill I can find is to:
+- count the number of rows for each gap
+- add that value as a column
+- fill forwards half
+- fill backwards half
+
+```{r fill_TS}
+# add a column to the data with the number of gaps
+
+# fill forwards with half the number of gaps
+
+# fill backwards with number of gaps
+
+https://stackoverflow.com/questions/16820072/length-of-trend-panel-data/16820379#16820379
+https://stackoverflow.com/questions/16842163/consecutive-nas-in-a-column
+
+
+```
+
+# Now let us plot the data to have a look at it
+```{r ohlc_plot}
+all_dates_xts <- xts(all_dates_df[,-1], order.by = all_dates_df[,1])
+
+candleChart(all_dates_xts)
+
+```
