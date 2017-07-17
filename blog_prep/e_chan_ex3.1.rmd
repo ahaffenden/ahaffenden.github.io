@@ -42,6 +42,10 @@ histPriceFile_df <- histPriceFile[[2]]
 
 # view the contents
 head(histPriceFile_df)
+
+# summarise
+summary(histPriceFile_df)
+
 ```
 The example from the book actually allocates the data to individual variables
 and so just for completeness
