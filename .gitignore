@@ -3,4 +3,5 @@ _site/
 .DS_Store
 *.swp
 .Rproj.user
-*.R*
+*.Rproj
+.Rhistory
