@@ -1,0 +1,83 @@
+---
+title: "echan_ex3.1: Scrape IBM data from Yahoo"
+author: "Austin Haffenden"
+date: '`r Sys.Date()`'
+output: 
+  md_document:
+    variant: markdown_github
+---
+
+```{r setup, include=FALSE}
+```
+## Scrape web pags for financial data 
+
+This is the first in a series of posts that will convert the MATLAB scripts 
+from E Chan's book 'Quantative Trading: How to Build Your Own Algorithmic
+Trading Business' into R code. 
+
+The following code will be used to retrieve a stock's historical price 
+information from Yahoo! Finance
+
+```{r cl_libs, message=FALSE}
+rm(list = ls()) # clear the workspace
+library(httr)
+library(quantmod)
+library(XML)
+```
+
+```{r read_page}
+
+symbol <- "IBM" # the stock of interest
+in_url <- paste0('http://finance.yahoo.com/q/hp?s=',  symbol)
+
+# retrieving the webpage data
+histPriceFile_page <-GET(in_url)
+
+# convert to a list
+histPriceFile <- readHTMLTable(rawToChar(histPriceFile_page$content), 
+                               stringsAsFactors = F)
+
+# extract what we want from the list - the second element
+histPriceFile_df <- histPriceFile[[2]]
+
+# view the contents
+head(histPriceFile_df)
+
+# summarise
+summary(histPriceFile_df)
+
+```
+The example from the book actually allocates the data to individual variables
+and so just for completeness
+
+```{r allocate}
+
+# standardise the column names
+colnames(histPriceFile_df) <- c("Date", "Open", "High", "Low", "Close", "Adj_Close", "Volume")
+head(histPriceFile_df)
+
+# allocate to individual variables
+op <- histPriceFile_df$Open
+hi <- histPriceFile_df$High
+lo <- histPriceFile_df$Low
+cl <- histPriceFile_df$Close
+vol <- histPriceFile_df$Volume
+adjCl <- histPriceFile_df$Adj_Close
+
+```
+And that is basically it for the example. More needs to be done before we can 
+use the data (preprocessing) but that will be another post as I want to keep 
+the e chan examples as stand alone items. 
+
+To finish we will save our dataframe for use another time. This can be done 
+in a variety of ways dependent on what you want to do with it. A csv file is
+useful for sharing and if you want to look at your data outside of R; an rds file
+allows you to read you data back in as an R variable.
+```{r save}
+write.csv(histPriceFile_df, file = "histPriceFile_df.csv")
+saveRDS(histPriceFile_df, "histPriceFile_df.rds")
+
+# histPriceFile_df <- read.csv("histPriceFile_df.csv", header = TRUE)
+# histPriceFile_df <- readRDS("histPriceFile_df.rds")
+
+```

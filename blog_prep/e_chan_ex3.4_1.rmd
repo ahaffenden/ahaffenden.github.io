@@ -1,0 +1,75 @@
+---
+title: "echan_ex3.4: Calculating Sharpe Ratio for Long-Only Versus Market-Neutral Strategies"
+author: "Austin Haffenden"
+date: '`r Sys.Date()`'
+output: 
+  md_document:
+    variant: markdown_github
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Example 3.4: Calculating Sharpe Ratio for Long-Only Versus
+Let’s calculate the Sharpe ratio of a trivial long-only strategy for IGE: buying and holding a share since the close of November 26, 2001, and selling it at close of November 14, 2007. Assume the average risk-free rate during this period is 4 percent per annum in this example. You can download
+the daily prices from Yahoo! Finance, specifying the date range desired,
+and store them as an Excel file (not the default comma-separated file),
+which you can call IGE.xls. The next steps can be done in either Excel or
+MATLAB:
+
+
+```{r cars}
+# make sure previously defined variables are erased.
+rm(list = ls())
+library(readxl) # to read in the xlsx file
+
+# read a spreadsheet named "IGE.xls" into MATLAB.
+# remove this directory before publishing ***
+dir <- "/home/deckard/Dropbox/Ebooks/finance/beginners/epchan_quantTrading/data"
+ige_dat <- read.table(file.path(dir, "IGE.xlsx"))
+                      
+# the first column (starting from the second row)
+# contains the trading days in format mm/dd/yyyy.
+tday=txt(2:end, 1);
+
+# convert the format into yyyymmdd.
+tday=datestr(datenum(tday, ‘mm/dd/yyyy’), ‘yyyymmdd’);
+
+# convert the date strings first into cell arrays and
+# then into numeric format.
+tday=str2double(cellstr(tday));
+
+# the last column contains the adjusted close prices.
+cls=num(:, end);
+
+# sort tday into ascending order.
+[tday sortIndex]=sort(tday, ‘ascend’);
+
+# sort cls into ascending order of dates.
+cls=cls(sortIndex);
+
+# daily returns
+dailyret=(cls(2:end)-cls(1:end-1))./cls(1:end-1);
+
+# excess daily returns assuming risk-free rate of 4#
+# per annum and 252 trading days in a year
+excessRet=dailyret - 0.04/252;
+
+# the output should be 0.7893
+sharpeRatio=sqrt(252)*mean(excessRet)/std(excessRet)
+```
+```{r spy}
+# Assume this is a continuation of the above code.
+# Insert your own code here to retrieve data from
+# SPY.xls just as above.
+
+# Name the array that contains the daily returns of
+# SPY "dailyretSPY".
+
+# net daily returns
+# (divide by 2 because we now have twice as much capital.)
+netRet=(dailyret - dailyretSPY)/2;
+# the output should be 0.7837.
+sharpeRatio=sqrt(252)*mean(excessRet)/std(excessRet)
+```
