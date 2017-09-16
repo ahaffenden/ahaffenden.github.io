@@ -1,8 +1,8 @@
 ---
-title: "test_plot"
-output:   
-  md_document:
-    variant: markdown_github
+title: 'e_chan_ex3.6: Trading of GLD and GDX'
+author: "Austin Haffenden"
+date: "July 15, 2017"
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -28,14 +28,3 @@ plot(pressure)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
-And to test ggplot2: the following code is copied from http://www.cookbook-r.com/Graphs/Legends_(ggplot2)/
-```{r ggplot2}
-
-library(ggplot2)
-bp <- ggplot(data=PlantGrowth, aes(x=group, y=weight, fill=group)) + geom_boxplot()
-bp
-
-```
-
-

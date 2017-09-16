@@ -1,0 +1,181 @@
+---
+title: "Preprocessing scraped IBM data from Yahoo"
+author: "Austin Haffenden"
+date: '`r Sys.Date()`'
+output: 
+  md_document:
+    variant: markdown_github
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Preprocess the E Chan Ex3.1 data (yahoo IBM)
+
+Further to the E Chan example we will process this data to:
+- convert it to the dplyr::tbl_df format to ease manipulations
+- remove any rows that contain dividends (May 08 2017 in this case)
+- convert the date to the R date format
+- fill the gaps in the data (e.g. weekends) 
+
+```{r clr_libs}
+rm(list = ls())
+library(dplyr)
+```
+
+# Read in our data (or download it using https://aushaff.github.io/2017/07/16/e_chan_ex3.1.html)
+
+```{r read_in}
+histPriceFile_df <- read.csv("histPriceFile_df.csv", header = TRUE)
+histPriceFile_df <- readRDS("histPriceFile_df.rds")
+
+```
+
+# Convert to table dataframe (dplyr) and standardise the column names (if not already done)
+```{r names_and_df}
+# for ease of later use convert to dplyr::tbl_df
+hpf_tbl_df <- tbl_df(histPriceFile_df)
+head(hpf_tbl_df)
+
+# remove strange characters from the column names (if not already done)
+colnames(hpf_tbl_df) <- c("Date", "Open", "High", "Low", "Close", "Adj_Close", "Volume")
+head(hpf_tbl_df)
+
+```
+
+# Remove the rows containing dividends 
+```{r remove_divi}
+# to remove any rows containing the word Dividend in Open
+hpf_tbl_df <- hpf_tbl_df[!grepl("Dividend", 
+                                            hpf_tbl_df$Open),]
+```
+
+# Convert the date column to Date format
+```{r set_date}
+
+# currently the data is stored as chars - convert all columns except
+# for the date to a numeric
+
+# Remove commas from the Volume column
+hpf_tbl_df$Volume <- gsub(",", "", hpf_tbl_df$Volume)
+  
+# convert to numeric (new df)
+hiPriFi_df  <- hpf_tbl_df
+hiPriFi_df[, -1] <- apply(hpf_tbl_df[,-1], 2, as.numeric)
+
+# convert the char date to a numeric and more straighforward format
+num_date <- function(in_date) {
+  
+  in_month <- strsplit(in_date, " ")[[1]][1]
+  out_month <- match(in_month, month.abb)
+  
+  in_day <- strsplit(in_date, " ")[[1]][2]
+  in_year <- strsplit(in_date, " ")[[1]][3]
+
+  out_date <- paste(in_day, out_month, in_year, sep = "/")
+  return(out_date)
+}
+
+# remove the comma from the Date column
+hiPriFi_df$Date <-gsub(",", "", hpf_tbl_df$Date)
+
+# apply the num_date function over all the dates
+dates <- unlist(sapply(hiPriFi_df$Date, num_date, 
+                simplify = FALSE,
+                USE.NAMES = FALSE))
+
+# update the dataframe and convert to a date
+hiPriFi_df$Date <- dates
+hiPriFi_df$Date <- as.Date(hiPriFi_df$Date, format = "%d/%m/%Y")
+
+# view the structure
+str(hiPriFi_df)
+```
+
+# Fill in the missing days (e.g weekends)
+
+I have been advised that last value forwards and backwards (50% each way)
+is the best method to use for machine learning methods with financial time 
+series data. However various methods are available to forward and backfill the 
+gaps and the library imputeTS has various functions: na.interpolation, na.locf 
+and na.kalman. 
+
+At present I have no solid rationale for choosing one method over another. 
+There is plenty of discussion and this thesis was highlighted in one of them:
+http://lib.tkk.fi/Diss/2010/isbn9789526034539/isbn9789526034539.pdf
+
+Hopefully I will get time to compare methods as implementations progresses. 
+
+# Fill missing days with last value forwards and backwards (50% split)
+
+```{r missing}
+# To add the missing days as NA
+# get the max and min date from the dataframe
+max_date <- max(hiPriFi_df$Date)
+min_date <- min(hiPriFi_df$Date) 
+
+# create a sequence of dates from min to max
+all_dates <- data.frame(Date=seq(min_date, max_date, by="days"))
+
+# combine the two dataframes so that all dates are included
+# the missing dates now have NA values
+all_dates_df <- merge(hiPriFi_df, all_dates, 
+                      by.x='Date',by.y='Date',all.x=T,all.y=T)
+
+# convert to tbl_df
+all_dates_df <- tbl_df(all_dates_df)
+
+```
+
+The best solution to the fill I can find is to:
+- count the number of rows for each gap
+- add that value as a column
+- fill forwards half
+- fill backwards half
+
+```{r fill_TS}
+# add a column to the data with the number of gaps
+
+# fill forwards with half the number of gaps
+
+# fill backwards with number of gaps
+
+sub <- all_dates_df[1:20,]
+
+df <- data.frame(Open = sub$Open,
+                 Close = sub$Close)
+# A tibble: 20 x 7
+         Date   Open   High    Low  Close Adj_Close  Volume
+       <date>  <dbl>  <dbl>  <dbl>  <dbl>     <dbl>   <dbl>
+ 1 2017-02-23 182.00 182.50 180.92 181.65    179.89 2282500
+ 2 2017-02-24 180.21 181.49 179.89 181.35    179.60 3300100
+ 3 2017-02-25     NA     NA     NA     NA        NA      NA
+ 4 2017-02-26     NA     NA     NA     NA        NA      NA
+ 5 2017-02-27 181.19 181.25 179.28 179.40    177.66 3691300
+ 6 2017-02-28 179.38 180.63 179.35 179.82    178.08 3273400
+ 7 2017-03-01 180.48 182.55 180.03 181.95    180.19 3005600
+ 8 2017-03-02 181.88 181.88 180.43 180.53    178.78 2918200
+ 9 2017-03-03 180.53 181.32 179.76 180.05    178.31 1822000
+10 2017-03-04     NA     NA     NA     NA        NA      NA
+11 2017-03-05     NA     NA     NA     NA        NA      NA
+12 2017-03-06 179.72 180.99 179.57 180.47    178.72 3204400
+
+is.na.rle <- rle(is.na(unlist(sub[,2])))
+is.na.rle$values & is.na.rle$lengths >= 1
+is.na.rle$values <- is.na.rle$values & is.na.rle$lengths >= 3
+
+https://stackoverflow.com/questions/31053915/fill-na-values-with-the-trailing-row-value-times-a-growth-rate
+
+https://stackoverflow.com/questions/16820072/length-of-trend-panel-data/16820379#16820379
+https://stackoverflow.com/questions/16842163/consecutive-nas-in-a-column
+
+
+```
+
+# Now let us plot the data to have a look at it
+```{r ohlc_plot}
+all_dates_xts <- xts(all_dates_df[,-1], order.by = all_dates_df[,1])
+
+candleChart(all_dates_xts)
+
+```
