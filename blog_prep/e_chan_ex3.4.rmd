@@ -72,6 +72,7 @@ sharpeRatio <- sqrt(252)*mean(excessRet)/sd(excessRet)
 sharpeRatio
 # 0.7893175
 ```
+
 ```{r spy}
 # Assume this is a continuation of the above code.
 # Insert your own code here to retrieve data from
@@ -99,7 +100,7 @@ clsSPY <- spy_dat$`Adj Close`
 head(clsSPY)
 
 dataSPY <- data.frame(tday = tdaySPY,
-                   cls = clsSPY)
+                      cls = clsSPY)
 head(dataSPY)
 # sort tday into ascending order and cls along with it
 dataSPY <- dataSPY[order(tdaySPY),]
@@ -121,7 +122,7 @@ excessRetSPY <- dailyretSPY - 0.04/252
 netRet <- (dailyret - dailyretSPY)/2
 
 # the output should be 0.783681
-sharpeRatioSPY <- sqrt(252)*mean(excessRetSPY)/sd(excessRetSPY)
+sharpeRatioSPY <- sqrt(252)*mean(netRet)/sd(netRet)
 sharpeRatioSPY
-# 0.1820709
+# 0.783681
 ```
