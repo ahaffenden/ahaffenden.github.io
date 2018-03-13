@@ -22,14 +22,15 @@ MATLAB:
 ```{r cars}
 # make sure previously defined variables are erased.
 rm(list = ls())
-library(readxl) # to read in the xlsx file
+
 ```
 
 ```{r ige_data}
 # read a spreadsheet named "IGE.xls" into MATLAB.
 # remove this directory before publishing ***
-dir <- "/home/deckard/Dropbox/Ebooks/finance/beginners/epchan_quantTrading/data"
-ige_dat <- read_xlsx(file.path(dir, "IGE.xlsx"))
+ige_dat <- read.csv(file.path(getwd(), 
+                               "data", 
+                               "IGE.csv"))
 head(ige_dat)                      
 
 # the first column 
@@ -37,7 +38,7 @@ head(ige_dat)
 tday <- ige_dat$Date
 
 # convert the format into yyyymmdd.
-tday <- format(as.Date(tday, "%Y-%m-%d"), "%Y%m%d")
+tday <- format(as.Date(tday, "%d/%m/%Y"), "%Y%m%d")
 head(tday)
 
 # convert the date strings first into cell arrays and
@@ -46,7 +47,7 @@ tday <- as.numeric(as.character(tday))
 head(tday)
 
 # the last column contains the adjusted close prices.
-cls <- ige_dat$`Adj Close`
+cls <- ige_dat$Adj.Close
 head(cls)
 
 data <- data.frame(tday = tday,
@@ -78,8 +79,7 @@ sharpeRatio
 # Insert your own code here to retrieve data from
 # SPY.xls just as above.
 # remove this directory before publishing ***
-dir <- "/home/deckard/Dropbox/Ebooks/finance/beginners/epchan_quantTrading/data"
-spy_dat <- read_xls(file.path(dir, "SPY.xls"))
+spy_dat <- read.csv(file.path(getwd(), "data", "SPY.csv"))
 head(spy_dat)      
 
 # the first column 
@@ -87,7 +87,7 @@ head(spy_dat)
 tdaySPY <- spy_dat$Date
 
 # convert the format into yyyymmdd.
-tdaySPY <- format(as.Date(tdaySPY, "%Y-%m-%d"), "%Y%m%d")
+tdaySPY <- format(as.Date(tdaySPY, "%d/%m/%Y"), "%Y%m%d")
 head(tdaySPY)
 
 # convert the date strings first into cell arrays and
@@ -96,7 +96,7 @@ tdaySPY <- as.numeric(as.character(tdaySPY))
 head(tdaySPY)
 
 # the last column contains the adjusted close prices.
-clsSPY <- spy_dat$`Adj Close`
+clsSPY <- spy_dat$Adj.Close
 head(clsSPY)
 
 dataSPY <- data.frame(tday = tdaySPY,
