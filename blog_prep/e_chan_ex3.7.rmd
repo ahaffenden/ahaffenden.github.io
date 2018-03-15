@@ -9,14 +9,96 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Introduction
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Here is a simple mean-reverting model: Buy the stocks with the worst
+previous one-day returns, and short the ones with the best previous oneday 
+returns. Despite its utter simplicity, this strategy has had great performance since 1995, ignoring transaction costs (it has a Sharpe ratio of 4.47 in 2006). 
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+Our objective here is to find out what would happen to its performance in 2006 
+if we assume a standard 5-basis-point-per-trade transaction cost. (A trade is defined as a buy or a short, not a round-trip transaction.)
 
-```{r cars}
-summary(cars)
+The original version of this example uses data from the S&P 500. As I am 
+currently working with cryptocurrencies we will use the ecosystem of stocks 
+available on the Kraken exchange. This data is availabe via the Kraken API 
+which can be downloaded using my KrakenR and KrakenTools packages. 
+
+This example also uses the retrieveHQuoteHistoricalPrice which selects the 
+stocks with a unique set of dates. I'm not sure if this is necessary with the
+kraken data
+```{r retHQuoteHistPrice}
+clear
+inputFile=‘Export.txt’
+outputFile=‘SPX 20071123’
+[mysym, mytday, myop, myhi, mylo, mycl, myvol]=...
+textread(inputFile, ‘%s %u %f %f %f %f %u’, ...
+‘delimiter’, ‘,’)
+# Since the single file consists of many symbols,
+# we need to find the unique set of symbols.
+stocks=unique(mysym)
+# Since the single file consists of many repeating set
+# of dates for different symbols, we need to find the
+# unique set of dates.
+tday=unique(mytday)
+op=NaN(length(tday), length(stocks))
+hi=NaN(length(tday), length(stocks))
+lo=NaN(length(tday), length(stocks))
+cl=NaN(length(tday), length(stocks))
+vol=NaN(length(tday), length(stocks))
+fors=1:length(stocks)
+stk=stocks{s}
+# find the locations (indices) of the data with
+# the current symbol.
+idxA=strmatch(stk, mysym, ‘exact’)
+ # find the
+locations (indices) of the data with
+# the current set of dates.
+[foo, idxtA, idxtB]=intersect(mytday(idxA), tday)
+# Extract the set of prices for the current symbol
+cktesting
+ # from the downloaded data.
+op(idxtB, s)=myop(idxA(idxtA))
+hi(idxtB, s)=myhi(idxA(idxtA))
+lo(idxtB, s)=mylo(idxA(idxtA))
+cl(idxtB, s)=mycl(idxA(idxtA))
+vol(idxtB, s)=myvol(idxA(idxtA))
+end
+save(outputFile, ‘tday’, ‘stocks’, ‘op’, ‘hi’, ...
+‘lo’, ‘cl’, ‘vol’)
+
+
+```
+```{r code}
+rm(list = ls())
+
+startDate=20060101
+endDate=20061231
+
+load('SPX_20071123', 'tday', 'stocks', 'cl')
+
+dailyret=(cl-lag1(cl))./lag1(cl) # daily returns
+
+marketDailyret=smartmean(dailyret, 2) # equal weighted market index return
+
+weights=-(dailyret-repmat(marketDailyret, [1 size(dailyret, 2)]))./repmat(smartsum(isfinite(cl), 2), [1 size(dailyret, 2)]) # weight of a stock is proportional to the negative distance to the market index.
+
+weights(~isfinite(cl) | ~isfinite(lag1(cl)))=0 # those stocks that do not have valid prices or daily returns are excluded.
+
+dailypnl=smartsum(lag1(weights).*dailyret, 2)
+
+dailypnl(tday < startDate | tday > endDate) = [] # remove pnl outside of our dates of interest
+
+sharpe=sqrt(252)*smartmean(dailypnl, 1)/smartstd(dailypnl, 1) # Sharpe ratio should be about 0.25
+
+# daily pnl with transaction costs deducted
+onewaytcost=0.0005 # assume 5 basis points
+
+weights(tday < startDate | tday > endDate, :) = [] # remove weights outside of our dates of interest
+
+dailypnlminustcost=dailypnl - smartsum(abs(weights-lag1(weights)), 2).*onewaytcost # transaction costs are only incurred when the weights change
+
+sharpeminustcost=sqrt(252)*smartmean(dailypnlminustcost, 1)/smartstd(dailypnlminustcost, 1) # Sharpe ratio should be about -3.19
+
 ```
 
 ## Including Plots
