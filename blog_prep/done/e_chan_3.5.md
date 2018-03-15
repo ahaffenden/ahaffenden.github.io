@@ -1,30 +1,20 @@
 ---
-title: "echan_ex3.5: Calculating Maximum Drawdown and Maximum Drawdown Duration"
-author: "Austin Haffenden"
-date: '`r Sys.Date()`'
-output: 
-  md_document:
-    variant: markdown_github
+layout: post
+title: "E Chan Quant Trading Ex. 3.5"
+date: 2017-07-16
+tags: Exercises, Maximum Drawdon
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-## Example 3.5: Calculating Maximum Drawdown and Maximum Drawdown Duration
-The continues the preceding long-short market-neutral example (Example  3.4.) 
-in order to illustrate the calculation of maximum drawdown and maximum 
-drawdown duration. 
+Example 3.5: Calculating Maximum Drawdown and Maximum Drawdown Duration
+-----------------------------------------------------------------------
 
-The first step in this calculation is to calculate the “high watermark” at the
-close of each day, which is the maximum cumulative return of the strategy up 
-to that time. 
+The continues the preceding long-short market-neutral example (Example 3.4.) in order to illustrate the calculation of maximum drawdown and maximum drawdown duration.
 
-(Using the cumulative return curve to calculate high watermark and drawdown is 
-equivalent to using the equity curve, since equity is nothing more than initial
-investment times 1 plus the cumulative return.) From the high watermark, we can 
-calculate the drawdown, the maximum drawdown, and maximum drawdown duration.
+The first step in this calculation is to calculate the “high watermark” at the close of each day, which is the maximum cumulative return of the strategy up to that time.
 
-```{r ex3_5}
+(Using the cumulative return curve to calculate high watermark and drawdown is equivalent to using the equity curve, since equity is nothing more than initial investment times 1 plus the cumulative return.) From the high watermark, we can calculate the drawdown, the maximum drawdown, and maximum drawdown duration.
+
+``` r
 calculateMaxDD <- function(cumret) {
   
   # initialise highwatermark to zero
@@ -59,14 +49,16 @@ calculateMaxDD <- function(cumret) {
   return(c(maxDD, maxDDD))
 }
 
-# Assume this is a continuation of the above MATLAB
-# code.
-
+# This is a continuation of exercise 3.4 and requires the netRet data
+netRet <- readRDS(file.path(getwd(), "data", "netRet.rds"))
 # cumulative compounded returns
 cumret <- cumprod(1+netRet)-1
 plot(cumret)
+```
 
+![](e_chan_3.5_files/figure-markdown_github/ex3_5-1.png)
 
+``` r
 # # maximum drawdown. Output should be 0.1053
 # maxDrawdown
 maxDrawdown <- calculateMaxDD(cumret)[1]

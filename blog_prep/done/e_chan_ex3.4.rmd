@@ -12,22 +12,23 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Example 3.4: Calculating Sharpe Ratio for Long-Only Versus
-Let’s calculate the Sharpe ratio of a trivial long-only strategy for IGE: buying and holding a share since the close of November 26, 2001, and selling it at close of November 14, 2007. Assume the average risk-free rate during this period is 4 percent per annum in this example. You can download
-the daily prices from Yahoo! Finance, specifying the date range desired,
-and store them as an Excel file (not the default comma-separated file),
-which you can call IGE.xls. The next steps can be done in either Excel or
-MATLAB:
 
+This example calculate the Sharpe ratio of a trivial long-only strategy for 
+IGE: buying and holding a share since the close of November 26, 2001, and 
+selling it at close of November 14, 2007. 
 
-```{r cars}
+Assume the average risk-free rate during this period is 4 percent per annum 
+in this example. The following example uses the data from the book but you 
+can download the daily prices from Yahoo! Finance which you can call IGE.xls. 
+
+```{r set_ws, eval=FALSE, include=TRUE}
 # make sure previously defined variables are erased.
 rm(list = ls())
 
 ```
 
-```{r ige_data}
-# read a spreadsheet named "IGE.xls" into MATLAB.
-# remove this directory before publishing ***
+```{r ige_data, eval=FALSE, include=TRUE}
+# read a spreadsheet named "IGE.csv" into R. 
 ige_dat <- read.csv(file.path(getwd(), 
                                "data", 
                                "IGE.csv"))
@@ -74,16 +75,14 @@ sharpeRatio
 # 0.7893175
 ```
 
-```{r spy}
-# Assume this is a continuation of the above code.
-# Insert your own code here to retrieve data from
-# SPY.xls just as above.
-# remove this directory before publishing ***
+```{r spy, eval=FALSE, include=TRUE}
+# This is a continuation of the above code.
+
+# Read in the SPY data
 spy_dat <- read.csv(file.path(getwd(), "data", "SPY.csv"))
 head(spy_dat)      
 
-# the first column 
-# contains the trading days in format yyyy-mm-dd.
+# the first column contains the trading days in format yyyy-mm-dd.
 tdaySPY <- spy_dat$Date
 
 # convert the format into yyyymmdd.
@@ -120,6 +119,9 @@ excessRetSPY <- dailyretSPY - 0.04/252
 # net daily returns
 # (divide by 2 because we now have twice as much capital.)
 netRet <- (dailyret - dailyretSPY)/2
+
+# save this data as it is required for the next exercise
+saveRDS(netRet, file.path(getwd(), "data", "netRet.rds"))
 
 # the output should be 0.783681
 sharpeRatioSPY <- sqrt(252)*mean(netRet)/sd(netRet)
