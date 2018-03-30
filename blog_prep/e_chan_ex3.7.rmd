@@ -11,21 +11,27 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
-Here is a simple mean-reverting model: Buy the stocks with the worst
-previous one-day returns, and short the ones with the best previous oneday 
-returns. Despite its utter simplicity, this strategy has had great performance since 1995, ignoring transaction costs (it has a Sharpe ratio of 4.47 in 2006). 
+Here is a simple mean-reverting model: Buy the stocks with the worst previous 
+one-day returns, and short the ones with the best previous oneday returns. 
 
-Our objective here is to find out what would happen to its performance in 2006 
-if we assume a standard 5-basis-point-per-trade transaction cost. (A trade is defined as a buy or a short, not a round-trip transaction.)
+The original version of this example used data from the S&P 500. Despite its 
+utter simplicity, this strategy has had great performance since 1995, ignoring
+transaction costs (it had a Sharpe ratio of 4.47 in 2006). 
 
-The original version of this example uses data from the S&P 500. As I am 
-currently working with cryptocurrencies we will use the ecosystem of stocks 
-available on the Kraken exchange. This data is availabe via the Kraken API 
-which can be downloaded using my KrakenR and KrakenTools packages. 
+As I am currently working with cryptocurrencies I will use the ecosystem of 
+stocks available on the Kraken exchange. This data is availabe via the Kraken 
+API which can be downloaded using my KrakenR and KrakenTools packages. 
+
+Our objective here is to find out what would happen to its performance if we
+assume a standard 5-basis-point-per-trade transaction cost. (A trade is 
+defined as a buy or a short, not a round-trip transaction.)
+
+This will then be modified to include actual costs from Kraken. 
 
 This example also uses the retrieveHQuoteHistoricalPrice which selects the 
-stocks with a unique set of dates. I'm not sure if this is necessary with the
-kraken data
+stocks with a unique set of dates. 
+
+
 ```{r retHQuoteHistPrice}
 clear
 inputFile=‘Export.txt’

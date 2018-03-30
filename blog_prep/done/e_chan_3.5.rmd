@@ -63,7 +63,8 @@ calculateMaxDD <- function(cumret) {
 netRet <- readRDS(file.path(getwd(), "data", "netRet.rds"))
 # cumulative compounded returns
 cumret <- cumprod(1+netRet)-1
-plot(cumret)
+plot(cumret,
+     )
 ```
 
 ```{r mDD, eval=FALSE, include=TRUE}

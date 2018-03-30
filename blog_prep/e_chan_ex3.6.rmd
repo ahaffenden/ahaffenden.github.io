@@ -11,8 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
-This example illustrates how to separate the data into a training set and a
-test set. 
+This example illustrates how to separate the data into a training set and a test set. 
 
 We will backtest a pair-trading strategy and optimize its parameters
 on the training set and look at the effect on the test set.
@@ -104,7 +103,7 @@ trainset <- 1:252
 # define indices for test set
 testset <- length(trainset)+1:nrow(all_dat) 
 
-vnames=strvcat('GLD', 'GDX')
+#vnames=strvcat('GLD', 'GDX')
 
 # test for cointegration of GLD and GDX in the trainset.
 # res=cadf(cl1(trainset), cl2(trainset), 0, 1)
@@ -118,11 +117,21 @@ hedgeRatio <- results$coefficients[2]
 
 # spread = GLD - hedgeRatio*GDX
 spread <- all_dat[, "cls_gld"] - 
-  hedgeRatio*all_dat[, "cls_gdx"] 
+hedgeRatio*all_dat[, "cls_gdx"] 
+```
+
+```{r plot_sprd_train}
 
 plot(spread[trainset])
 
+```
+
+```{r plot_sprd_test}
+
 plot(spread[testset])
+```
+
+```{r cont}
 
 # mean  of spread on trainset
 spreadMean <- mean(spread[trainset]) 
@@ -147,33 +156,28 @@ exits <- abs(zscore) <= 1
 # positions=NaN(length(tday), 2) 
 positions <- matrix(rep(NaN), nrow(all_dat), 2)
                  
-# looks like there is a matlab package in r that includes the
-# repmat function but for now
-repmat = function(X, m) {
-  mx = dim(X)[1]
-  matrix(t(matrix(X, mx)), 
-         mx*m,
-         byrow = TRUE)
-  
-}
+library(matlab)
 
 # long entries
-positions[shorts, ] <- repmat(matrix(-1 1), 
-                              [length(find(shorts)) 1])
+positions[shorts, ] <- repmat(c(-1, 1), c(length(find(shorts)), 1))
 
 
 # short entries
-positions(longs,  :)=repmat([1 -1], [length(find(longs)) 1]) 
+positions[longs, ] <- repmat(c(1 -1), c(length(find(longs)),  1))
 
 # exit positions
-positions(exits,  :)=zeros(length(find(exits)), 2)
+positions[exits, ] <- zeros(length(find(exits)), 2)
 
 # ensure existing positions are carried forward unless there is an exit signal
-positions=fillMissingData(positions) 
+positions <- fill_missing_data(positions) 
 
+detach(package:echanFuncs)
+library(echanFuncs)
+lag1
 # combine the 2 price series
-cl=[cl1 cl2] 
-dailyret=(cl - lag1(cl))./lag1(cl)
+cl <- data.frame(all_dat$cls_gdx, all_dat$cls_gld)[cl1 cl2] 
+dailyret <- c(all_dat - all_dat)
+ddailyret=(cl - lag1(cl))./lag1(cl)
 
 pnl=sum(lag1(positions).*dailyret, 2)
 
