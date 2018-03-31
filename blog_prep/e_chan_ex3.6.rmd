@@ -1,8 +1,10 @@
 ---
 title: 'e_chan_ex3.6: Trading of GLD and GDX'
 author: "Austin Haffenden"
-date: "July 15, 2017"
-output: html_document
+date: '`r Sys.Date()`'
+output: 
+  md_document:
+    variant: markdown_github
 ---
 
 ```{r setup, include=FALSE}
@@ -11,16 +13,17 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
-This example illustrates how to separate the data into a training set and a test set. 
+This example illustrates how to separate the data into a training set
+and a test set. 
 
-We will backtest a pair-trading strategy and optimize its parameters
-on the training set and look at the effect on the test set.
-GLD versus GDX is a good candidate for pair trading because GLD
-reflects the spot price of gold, and GDX is a basket of gold-mining
-stocks. It makes intuitive sense that their prices should move in tandem.
+We will backtest a pair-trading strategy and optimize its parameters on the 
+training set and look at the effect on the test set. GLD versus GDX is a good
+candidate for pair trading because GLD reflects the spot price of gold, and 
+GDX is a basket of gold-mining stocks. It makes intuitive sense that their 
+prices should move in tandem.
 
-E. Chan has discussed this pair of ETFs extensively on his blog in connec-
-tion with cointegration analysis (see, e.g., epchan.blogspot.com/2006/11/reader-suggested-possible-trading.html). 
+E. Chan states that he has discussed this pair of ETFs extensively on his 
+blog in connection with cointegration analysis (see, e.g., epchan.blogspot.com/2006/11/reader-suggested-possible-trading.html). 
 
 Cointegration analysis on the training set is covered in Chapter 7 of the 
 book and is used to determine if the spread formed by long GLD and short 
@@ -54,6 +57,7 @@ head(tday_gld)
 cls_gld <- gld_in$Adj.Close
 head(cls_gld)
 
+# date and adjusted close as data.frame
 gld_dat <- data.frame(tday = tday_gld,
                       cls_gld = cls_gld)
 
@@ -101,7 +105,7 @@ all_dat <- all_dat[order(all_dat$tday),]
 trainset <- 1:252 
 
 # define indices for test set
-testset <- length(trainset)+1:nrow(all_dat) 
+testset <- seq(length(trainset)+1, nrow(all_dat), 1)
 
 #vnames=strvcat('GLD', 'GDX')
 
@@ -112,12 +116,16 @@ testset <- length(trainset)+1:nrow(all_dat)
 
 # determines the hedge ratio on the trainset
 # use regression function
-results <- lm(all_dat[trainset, "cls_gld"]~all_dat[trainset, "cls_gdx"])
-hedgeRatio <- results$coefficients[2]
+results <- lm(I(all_dat[trainset, "cls_gld"])~0+all_dat[trainset, "cls_gdx"])
+results
+# 1.6310
+
+hedgeRatio <- results$coefficients[1]
+hedgeRatio
 
 # spread = GLD - hedgeRatio*GDX
-spread <- all_dat[, "cls_gld"] - 
-hedgeRatio*all_dat[, "cls_gdx"] 
+spread <- all_dat[, "cls_gld"] - hedgeRatio*all_dat[, "cls_gdx"] 
+spread
 ```
 
 ```{r plot_sprd_train}
@@ -168,24 +176,38 @@ positions[longs, ] <- repmat(c(1 -1), c(length(find(longs)),  1))
 # exit positions
 positions[exits, ] <- zeros(length(find(exits)), 2)
 
+detach(package:echanFuncs, unload = TRUE)
+library(echanFuncs)
+
 # ensure existing positions are carried forward unless there is an exit signal
 positions <- fill_missing_data(positions) 
 
-detach(package:echanFuncs)
-library(echanFuncs)
-lag1
 # combine the 2 price series
-cl <- data.frame(all_dat$cls_gdx, all_dat$cls_gld)[cl1 cl2] 
-dailyret <- c(all_dat - all_dat)
-ddailyret=(cl - lag1(cl))./lag1(cl)
+cl <- data.frame(cls_gl = as.numeric(all_dat$cls_gl),
+                 cls_gdx = as.numeric(all_dat$cls_gdx))
 
-pnl=sum(lag1(positions).*dailyret, 2)
+# Original MATLAB: dailyret=(cl - lag1(cl))./lag1(cl)
+lag1_cl <- lag1(cl)
+lag1_cl <- data.frame(cls_gl = as.numeric(lag1_cl$cls_gl),
+                      cls_gdx = as.numeric(lag1_cl$cls_gdx))
+
+
+dr_1 <- cl[2:nrow(cl), ] - lag1_cl[2:nrow(lag1_cl), ]
+
+dailyret <- rbind(lag1_cl[1, ], dr_1 / lag1_cl[2:nrow(lag1_cl), ])
+
+# MATLAB original: pnl=sum(lag1(positions).*dailyret, 2)
+pnl <-c(NA, 
+            rowSums(lag1(positions)[2:nrow(positions), ]*
+                      dailyret[2:nrow(positions), ]))
 
 # the Sharpe ratio on the training set should be about 2.9
-sharpeTrainset=sqrt(252)*mean(pnl(trainset(2:end)))./std(pnl(trainset(2:end))) 
+sharpeTrainset=sqrt(252)*mean(pnl[trainset[2:length(trainset)]])/sd(pnl[trainset[2:length(trainset)]]) 
+sharpeTrainset
 
 # the Sharpe ratio on the test set should be about 1.0
-sharpeTestset=sqrt(252)*mean(pnl(testset))./std(pnl(testset)) 
+sharpeTestset=sqrt(252)*mean(pnl[testset], na.rm = TRUE)/sd(pnl[testset]) 
+sharpeTestset
 
 plot(cumsum(pnl(testset)))
 
@@ -198,7 +220,32 @@ plot(cumsum(pnl(testset)))
 # end
 
 ```
+```{r comparison_to_oct_out}
+oct_dir <- "/home/austin/Dropbox/Ebooks/finance/data/epchan_quantTrading/matlab_scripts"
 
+list.files(oct_dir)
+dr_oct <- read.table(file.path(oct_dir, "example3_6_dailyret"))
+pnl_oct  <- read.table(file.path(oct_dir, "example3_6_pnl"))
+
+class(dr_oct)
+class(dailyret)
+all.equal(dr_oct, dailyret, check.attributes = FALSE)
+
+class(pnl_oct)
+class(pnl)
+pnl <- as.data.frame(pnl)
+
+all.equal(pnl_oct, pnl, check.attributes = FALSE)
+head(pnl)
+head(pnl_oct)
+
+pnls <- data.frame(pnl_oct = round(pnl_oct, 5),
+                  pnl = round(pnl, 5),
+                  diff = round(pnl, 5) - round(pnl_oct, 5))
+
+head(pnls)
+diff <- subset(pnls, diff>0)
+```
 ## Lag1 function 
 
 Original Matlab code
