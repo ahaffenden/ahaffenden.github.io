@@ -11,7 +11,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Introduction
+## Quantitative Trading: example 3.6 Pairs trading with GLD and GDX
 
 This example illustrates how to separate the data into a training set
 and a test set. 
@@ -35,27 +35,32 @@ test set.
 
 We will use a function, lag1, to lag the time series by one time period. 
 
-```{r code}
+```{r dirs_libs, message=FALSE}
 # make sure previously defined variables are erased.
 rm(list = ls())
+library(pracma)
+library(echanFuncs)
+library(matlab)
+library(dplyr)
+```
+
+```{r code}
 
 # read a spreadsheet named "GLD.xls" into MATLAB. 
 gld_in <- read.csv(file.path("data", "GLD.csv"))
 
-# the first column (starting from the second row) is the trading days in format mm/dd/yyyy.
+# the first column (starting from the second row) is the trading days in
+# format mm/dd/yyyy.
 tday_gld <- gld_in$Date
 
 # convert the format into yyyymmdd.
 tday_gld <- format(as.Date(tday_gld, "%d/%m/%Y"), "%Y%m%d")
-head(tday_gld)
 
 # convert the date strings first into cell arrays and then into numeric format.
 tday_gld <- as.numeric(as.character(tday_gld))
-head(tday_gld)
 
 # the last column contains the adjusted close prices.
 cls_gld <- gld_in$Adj.Close
-head(cls_gld)
 
 # date and adjusted close as data.frame
 gld_dat <- data.frame(tday = tday_gld,
@@ -64,20 +69,18 @@ gld_dat <- data.frame(tday = tday_gld,
 # read a spreadsheet named "GDX.xls" into MATLAB. 
 gdx_in <- read.csv(file.path("data", "GDX.csv"))
 
-# the first column (starting from the second row) is the trading days in format mm/dd/yyyy.
+# the first column (starting from the second row) is the trading days in 
+# format mm/dd/yyyy.
 tday_gdx <- gdx_in$Date
 
 # convert the format into yyyymmdd.
 tday_gdx <- format(as.Date(tday_gdx, "%d/%m/%Y"), "%Y%m%d")
-head(tday_gdx)
 
 # convert the date strings first into cell arrays and then into numeric format.
 tday_gdx <- as.numeric(as.character(tday_gdx))
-head(tday_gdx)
 
 # the last column contains the adjusted close prices.
 cls_gdx <- gdx_in$Adj.Close
-head(cls_gdx)
 
 # dataframe of the data
 gdx_dat <- data.frame(tday = tday_gdx,
@@ -85,21 +88,8 @@ gdx_dat <- data.frame(tday = tday_gdx,
 
 # find the intersection of the two data sets, and sort them in ascending order
 # by the time
-#int_sort <- sort(intersect(tday_gld, tday_gdx))
-library(dplyr)
 all_dat <- left_join(gdx_dat, gld_dat, by = "tday")
 all_dat <- all_dat[order(all_dat$tday),]
-
-# think i can delete these
-# cl1=adjcls1(idx1) 
-# 
-# cl2=adjcls2(idx2)  
-
-# # step one of look-forward bias check
-# cutoff=60 # number of most recent trading days to cut off 
-# tday(end-cutoff+1:end, :)=[] # remove the last cutoff number of days.
-# cl1(end-cutoff+1:end, :)=[]
-# cl2(end-cutoff+1:end, :)=[]
 
 # define indices for training set
 trainset <- 1:252 
@@ -107,25 +97,16 @@ trainset <- 1:252
 # define indices for test set
 testset <- seq(length(trainset)+1, nrow(all_dat), 1)
 
-#vnames=strvcat('GLD', 'GDX')
-
-# test for cointegration of GLD and GDX in the trainset.
-# res=cadf(cl1(trainset), cl2(trainset), 0, 1)
-# 
-# prt(res, vnames)
-
 # determines the hedge ratio on the trainset
 # use regression function
 results <- lm(I(all_dat[trainset, "cls_gld"])~0+all_dat[trainset, "cls_gdx"])
-results
-# 1.6310
 
-hedgeRatio <- results$coefficients[1]
+hedgeRatio <- results$coefficients[[1]]
 hedgeRatio
 
 # spread = GLD - hedgeRatio*GDX
 spread <- all_dat[, "cls_gld"] - hedgeRatio*all_dat[, "cls_gdx"] 
-spread
+
 ```
 
 ```{r plot_sprd_train}
@@ -142,45 +123,40 @@ plot(spread[testset])
 ```{r cont}
 
 # mean  of spread on trainset
-spreadMean <- mean(spread[trainset]) 
+spreadMean <- mean(spread[trainset])
 
 # standard deviation of spread on trainset
-spreadStd <- sd(spread[trainset]) 
+spreadStd <- sd(spread[trainset])
 
 # z-score of spread
-zscore <- (spread - spreadMean) / spreadStd 
+zscore <- (spread - spreadMean) / spreadStd
 
 # buy spread when its value drops below 2 standard deviations.
-longs <- zscore <= -2 
+longs <- zscore <= -2
 
 # short spread when its value rises above 2 standard deviations.
-shorts <-  zscore >= 2 
+shorts <-  zscore >= 2
 
-# exit any spread position when its value is within 1 standard deviation of 
+# exit any spread position when its value is within 1 standard deviation of
 # its mean.
-exits <- abs(zscore) <= 1 
+exits <- abs(zscore) <= 1
 
 # initialize positions array
-# positions=NaN(length(tday), 2) 
+# positions=NaN(length(tday), 2)
 positions <- matrix(rep(NaN), nrow(all_dat), 2)
-                 
-library(matlab)
 
 # long entries
-positions[shorts, ] <- repmat(c(-1, 1), c(length(find(shorts)), 1))
-
+positions[shorts, ] <- repmat(c(-1, 1), sum(shorts), 1)
 
 # short entries
-positions[longs, ] <- repmat(c(1 -1), c(length(find(longs)),  1))
+positions[longs, ] <- repmat(c(1, -1), sum(longs),  1)
+
 
 # exit positions
-positions[exits, ] <- zeros(length(find(exits)), 2)
-
-detach(package:echanFuncs, unload = TRUE)
-library(echanFuncs)
+positions[exits, ] <- matlab::zeros(length(find(exits)), 2)
 
 # ensure existing positions are carried forward unless there is an exit signal
-positions <- fill_missing_data(positions) 
+positions <- fill_missing_data(positions)
 
 # combine the 2 price series
 cl <- data.frame(cls_gl = as.numeric(all_dat$cls_gl),
@@ -197,76 +173,19 @@ dr_1 <- cl[2:nrow(cl), ] - lag1_cl[2:nrow(lag1_cl), ]
 dailyret <- rbind(lag1_cl[1, ], dr_1 / lag1_cl[2:nrow(lag1_cl), ])
 
 # MATLAB original: pnl=sum(lag1(positions).*dailyret, 2)
-pnl <-c(NA, 
-            rowSums(lag1(positions)[2:nrow(positions), ]*
-                      dailyret[2:nrow(positions), ]))
+pnl <- rowSums(lag1(positions)[2:nrow(positions), ]*
+                      dailyret[2:nrow(dailyret), ])
+pnl <- c(NA, pnl)
 
 # the Sharpe ratio on the training set should be about 2.9
-sharpeTrainset=sqrt(252)*mean(pnl[trainset[2:length(trainset)]])/sd(pnl[trainset[2:length(trainset)]]) 
+sharpeTrainset <- sqrt(252) * 
+  mean(pnl[trainset[2:length(trainset)]]) / sd(pnl[trainset[2:length(trainset)]])
 sharpeTrainset
 
 # the Sharpe ratio on the test set should be about 1.0
-sharpeTestset=sqrt(252)*mean(pnl[testset], na.rm = TRUE)/sd(pnl[testset]) 
+sharpeTestset=sqrt(252) * mean(pnl[testset], na.rm = TRUE) / sd(pnl[testset])
 sharpeTestset
 
-plot(cumsum(pnl(testset)))
+plot(cumsum(pnl[testset]))
 
-# # step two of look-forward-bias check
-# oldoutput=load('example3_6_positions')
-# oldoutput.positions(end-cutoff+1:end, :)=[]
-#  
-# if (any(positions~=oldoutput.positions))
-#     fprintf(1, 'Program has look-forward-bias!\n')
-# end
-
-```
-```{r comparison_to_oct_out}
-oct_dir <- "/home/austin/Dropbox/Ebooks/finance/data/epchan_quantTrading/matlab_scripts"
-
-list.files(oct_dir)
-dr_oct <- read.table(file.path(oct_dir, "example3_6_dailyret"))
-pnl_oct  <- read.table(file.path(oct_dir, "example3_6_pnl"))
-
-class(dr_oct)
-class(dailyret)
-all.equal(dr_oct, dailyret, check.attributes = FALSE)
-
-class(pnl_oct)
-class(pnl)
-pnl <- as.data.frame(pnl)
-
-all.equal(pnl_oct, pnl, check.attributes = FALSE)
-head(pnl)
-head(pnl_oct)
-
-pnls <- data.frame(pnl_oct = round(pnl_oct, 5),
-                  pnl = round(pnl, 5),
-                  diff = round(pnl, 5) - round(pnl_oct, 5))
-
-head(pnls)
-diff <- subset(pnls, diff>0)
-```
-## Lag1 function 
-
-Original Matlab code
-```{r lag1_m, echo=FALSE}
-# function y=lag(x)
-# % y=lag(x)
-# % 
-# % written by:
-# % Ernest Chan
-# %
-# % Author of ?Quantitative Trading: 
-# % How to Start Your Own Algorithmic Trading Business?
-# %
-# % ernest@epchan.com
-# % www.epchan.com
-# 
-# if (isnumeric(x))
-#     y=[NaN(1,size(x,2))x(1:end-1, :)] % populate the first entry with NaN
-# elseif (ischar(x))
-#     y=[repmat('',[1 size(x,2)])x(1:end-1, :)] % populate the first entry with ''
-# else
-#     error('Can only be numeric or char array')
-# end.
 ```
