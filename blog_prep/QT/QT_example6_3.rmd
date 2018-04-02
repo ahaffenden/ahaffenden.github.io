@@ -1,57 +1,111 @@
-% 
-% written by:
-% Ernest Chan
-%
-% Author of “Quantitative Trading: 
-% How to Start Your Own Algorithmic Trading Business”
-%
-% ernest@epchan.com
-% www.epchan.com
+---
+title: "echan_ex6.3: Calculating the Optimal Allocation Using Kelly Formula
+author: "Austin Haffenden"
+date: '`r Sys.Date()`'
+output: 
+  md_document:
+    variant: markdown_github
+---
 
-clear; % make sure previously defined variables are erased.
- 
-[num1, txt1]=xlsread('OIH'); % read a spreadsheet named "OIH.xls" into MATLAB. 
- 
-tday1=txt1(2:end, 1); % the first column (starting from the second row) is the trading days in format mm/dd/yyyy.
- 
-tday1=datestr(datenum(tday1, 'mm/dd/yyyy'), 'yyyymmdd'); % convert the format into yyyymmdd.
- 
-tday1=str2double(cellstr(tday1)); % convert the date strings first into cell arrays and then into numeric format.
- 
-adjcls1=num1(:, end); % the last column contains the adjusted close prices.
- 
-[num2, txt2]=xlsread('RKH'); % read a spreadsheet named "RKH.xls" into MATLAB. 
- 
-tday2=txt2(2:end, 1); % the first column (starting from the second row) is the trading days in format mm/dd/yyyy.
- 
-tday2=datestr(datenum(tday2, 'mm/dd/yyyy'), 'yyyymmdd'); % convert the format into yyyymmdd.
- 
-tday2=str2double(cellstr(tday2)); % convert the date strings first into cell arrays and then into numeric format.
+```{r setup, include=FALSE}
+```
+## Calculating the Optimal Allocation Using Kelly Formula
 
-adjcls2=num2(:, end);
+We pick three sector-specific ETFs and see how we should allocate capital among
+them to achieve the maximum growth rate for the portfolio.
 
-[num3, txt3]=xlsread('RTH'); % read a spreadsheet named "RTH.xls" into MATLAB. 
- 
-tday3=txt3(2:end, 1); % the first column (starting from the second row) is the trading days in format mm/dd/yyyy.
- 
-tday3=datestr(datenum(tday3, 'mm/dd/yyyy'), 'yyyymmdd'); % convert the format into yyyymmdd.
- 
-tday3=str2double(cellstr(tday3)); % convert the date strings first into cell arrays and then into numeric format.
+The three ETFs are: OIH (oil service), RKH (regional bank), and RTH (retail). 
+The daily prices are downloaded from Yahoo! Finance and saved in
+epchan.com/book as OIH.xls, RKH.xls, and RTH.xls. 
 
-adjcls3=num3(:, end);
+This file calculates M, C, and F* (F* = C^-1*M), where:
+  M is the column vector of mean returns for the strategies;
+  C is the covariance matrix such that Cij is the covariance of returns of the
+  ith and jth strategies;
+  F is the kelly optimal leverages
+  
+  This is taken from exercise 6.3 of E.Chans book Quantitative Trading. 
 
-% merge these data
-tday=union(tday1, tday2);
-tday=union(tday, tday3);
-adjcls=NaN(length(tday), 3);
+```{r cl_libs, message=FALSE}
+rm(list = ls()) # clear the workspace
+library(dplyr)
+```
 
-[foo idx1 idx]=intersect(tday1, tday);
+```{r data_in}
+
+# OIH data
+oih_in <- read.csv(file.path("data", "OIH.csv"))
+
+# the first column (starting from the second row) is the trading days in
+# format mm-dd-yyyy.
+tday_oih <- oih_in$Date
+
+# convert the format into yyyymmdd.
+tday_oih <- format(as.Date(tday_oih, "%d-%m-%Y"), "%Y%m%d")
+
+# convert the date strings first into cell arrays and then into numeric format.
+tday_oih <- as.numeric(as.character(tday_oih)) 
+
+# the last column contains the adjusted close prices.
+cls_oih <- oih_in$Adj.Close
+
+# RKH data 
+rkh_in <- read.csv(file.path("data", "RKH.csv"))
+
+# the first column (starting from the second row) is the trading days in
+# format mm/dd/yyyy.
+tday_rkh <- rkh_in$Date
+
+# convert the format into yyyymmdd.
+tday_rkh <- format(as.Date(tday_rkh, "%d-%m-%Y"), "%Y%m%d")
+
+# convert the date strings first into cell arrays and then into numeric format.
+tday_rkh <- as.numeric(as.character(tday_rkh)) 
+
+# the last column contains the adjusted close prices.
+cls_rkh <- rkh_in$Adj.Close
+
+# RTH data
+rth_in <- read.csv(file.path("data", "RTH.csv"))
+
+# the first column (starting from the second row) is the trading days in
+# format mm/dd/yyyy.
+tday_rth <- rth_in$Date
+
+# convert the format into yyyymmdd.
+tday_rth <- format(as.Date(tday_rth, "%d-%m-%Y"), "%Y%m%d")
+
+# convert the date strings first into cell arrays and then into numeric format.
+tday_rth <- as.numeric(as.character(tday_rth)) 
+
+# the last column contains the adjusted close prices.
+cls_rth <- rth_in$Adj.Close
+
+```
+
+```{r }
+# merge these data
+tday <- union(tday_oih, tday_rkh)
+tday <- union(tday, tday_rth)
+
+adjcls <- matrix(NaN, length(tday), 3)
+
+# rows for oih
+idx <- match(tday_rkh, tday_oih)
+                 
+[foo idx1 idx]=intersect;
 adjcls(idx, 1)=adjcls1(idx1);
+
+# rows for rkh
 [foo idx2 idx]=intersect(tday2, tday);
 adjcls(idx, 2)=adjcls2(idx2);
+
+# rows for idx
 [foo idx3 idx]=intersect(tday3, tday);
 adjcls(idx, 3)=adjcls3(idx3);
+```
 
+```{r calcs}
 ret=(adjcls-lag1(adjcls))./lag1(adjcls); % returns
 
 baddata=find(any(~isfinite(ret), 2)); % days where any one return is missing
@@ -90,3 +144,4 @@ S=sqrt(F'*C*F) % Sharpe ratio of portfolio
 % S =
 % 
 %     0.4751
+```
