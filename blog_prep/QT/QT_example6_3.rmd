@@ -84,14 +84,19 @@ cls_rth <- rth_in$Adj.Close
 ```
 
 ```{r }
-# merge these data
+# merge these data - tday is the same as octave: tested
 tday <- union(tday_oih, tday_rkh)
 tday <- union(tday, tday_rth)
 
 adjcls <- matrix(NaN, length(tday), 3)
 
-# rows for oih
-idx <- match(tday_rkh, tday_oih)
+int_oih <- dplyr::intersect(tday_oih, tday)
+idx_oih <- match(tday_oih, tday)
+
+adjcls[idx_oih] <- cls_oih[idx_oih]
+
+
+idx <- match(tday_rkh, int_oih_rkh)
                  
 [foo idx1 idx]=intersect;
 adjcls(idx, 1)=adjcls1(idx1);
