@@ -38,76 +38,99 @@ oih_in <- read.csv(file.path("data", "OIH.csv"))
 
 # the first column (starting from the second row) is the trading days in
 # format mm-dd-yyyy.
-tday_oih <- oih_in$Date
+tday1 <- oih_in$Date
 
 # convert the format into yyyymmdd.
-tday_oih <- format(as.Date(tday_oih, "%d-%m-%Y"), "%Y%m%d")
+tday1 <- format(as.Date(tday1, "%d-%m-%Y"), "%Y%m%d")
 
 # convert the date strings first into cell arrays and then into numeric format.
-tday_oih <- as.numeric(as.character(tday_oih)) 
+tday1 <- rev(as.numeric(as.character(tday1)))
 
 # the last column contains the adjusted close prices.
-cls_oih <- oih_in$Adj.Close
+adjcls1 <- oih_in$Adj.Close
 
 # RKH data 
 rkh_in <- read.csv(file.path("data", "RKH.csv"))
 
 # the first column (starting from the second row) is the trading days in
 # format mm/dd/yyyy.
-tday_rkh <- rkh_in$Date
+tday2 <- rkh_in$Date
 
 # convert the format into yyyymmdd.
-tday_rkh <- format(as.Date(tday_rkh, "%d-%m-%Y"), "%Y%m%d")
+tday2 <- format(as.Date(tday2, "%d-%m-%Y"), "%Y%m%d")
 
 # convert the date strings first into cell arrays and then into numeric format.
-tday_rkh <- as.numeric(as.character(tday_rkh)) 
+tday2 <- as.numeric(as.character(tday2)) 
 
 # the last column contains the adjusted close prices.
-cls_rkh <- rkh_in$Adj.Close
+adjcls2 <- rkh_in$Adj.Close
 
 # RTH data
 rth_in <- read.csv(file.path("data", "RTH.csv"))
 
 # the first column (starting from the second row) is the trading days in
 # format mm/dd/yyyy.
-tday_rth <- rth_in$Date
+tday3 <- rth_in$Date
 
 # convert the format into yyyymmdd.
-tday_rth <- format(as.Date(tday_rth, "%d-%m-%Y"), "%Y%m%d")
+tday3 <- format(as.Date(tday3, "%d-%m-%Y"), "%Y%m%d")
 
 # convert the date strings first into cell arrays and then into numeric format.
-tday_rth <- as.numeric(as.character(tday_rth)) 
+tday3 <- as.numeric(as.character(tday3)) 
 
 # the last column contains the adjusted close prices.
-cls_rth <- rth_in$Adj.Close
+adjcls3 <- rth_in$Adj.Close
 
 ```
 
 ```{r }
 # merge these data - tday is the same as octave: tested
-tday <- union(tday_oih, tday_rkh)
-tday <- union(tday, tday_rth)
+tday <- union(tday1, tday2)
+tday <- union(tday, tday3)
 
 adjcls <- matrix(NaN, length(tday), 3)
 
-int_oih <- dplyr::intersect(tday_oih, tday)
-idx_oih <- match(tday_oih, tday)
+#========================================
+# tday1
+foo <- dplyr::intersect(tday1, tday)
 
-adjcls[idx_oih] <- cls_oih[idx_oih]
+# idx1 is the indices of tday1
+idx1 <- tday1 %in% foo 
 
+# idx is the indices of tday
+idx <- tday %in% foo
 
-idx <- match(tday_rkh, int_oih_rkh)
-                 
-[foo idx1 idx]=intersect;
-adjcls(idx, 1)=adjcls1(idx1);
+adjcls[idx, 1] <- adjcls1[idx1]
 
-# rows for rkh
-[foo idx2 idx]=intersect(tday2, tday);
-adjcls(idx, 2)=adjcls2(idx2);
+#========================================
+# tday2
+foo <- dplyr::intersect(tday2, tday)
 
-# rows for idx
-[foo idx3 idx]=intersect(tday3, tday);
-adjcls(idx, 3)=adjcls3(idx3);
+# idx1 is the indices of tday2
+idx2 <- tday2 %in% foo 
+
+# idx is the indices of tday
+idx <- tday %in% foo
+
+adjcls[idx, 2] <- adjcls2[idx2]
+
+head(adjcls)
+tail(adjcls)
+#========================================
+# tday3
+foo <- dplyr::intersect(tday3, tday)
+
+# idx1 is the indices of tday3
+idx3 <- tday3 %in% foo 
+
+# idx is the indices of tday
+idx <- tday %in% foo
+
+adjcls[idx, 3] <- adjcls3[idx3]
+
+head(adjcls, 60)
+tail(adjcls)
+
 ```
 
 ```{r calcs}
