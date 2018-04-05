@@ -1,9 +1,23 @@
+---
+title: "echan_ex7.6: Backtesting the January Effect
+author: "Austin Haffenden"
+date: '`r Sys.Date()`'
+output: 
+  md_document:
+    variant: markdown_github
+---
+
+```{r setup, include=FALSE}
+```
+## Backtesting the January Effect
+
+
 % 
 % written by:
 % Ernest Chan
 %
-% Author of “Quantitative Trading: 
-% How to Start Your Own Algorithmic Trading Business”
+% Author of ?Quantitative Trading: 
+% How to Start Your Own Algorithmic Trading Business?
 %
 % ernest@epchan.com
 % www.epchan.com

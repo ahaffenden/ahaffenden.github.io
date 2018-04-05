@@ -1,9 +1,22 @@
+---
+title: "echan_ex7.7: Backtesting a Year-on-Year Seasonal Trending Strategy
+author: "Austin Haffenden"
+date: '`r Sys.Date()`'
+output: 
+  md_document:
+    variant: markdown_github
+---
+
+```{r setup, include=FALSE}
+```
+## Backtesting a Year-on-Year Seasonal Trending Strategy
+
 % 
 % written by:
 % Ernest Chan
 %
-% Author of “Quantitative Trading: 
-% How to Start Your Own Algorithmic Trading Business”
+% Author of ?Quantitative Trading: 
+% How to Start Your Own Algorithmic Trading Business?
 %
 % ernest@epchan.com
 % www.epchan.com

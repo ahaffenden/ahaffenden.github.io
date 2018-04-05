@@ -1,9 +1,22 @@
+---
+title: "echan_ex7.5: Calculation of the Half-Life of a Mean-Reverting Time Series
+author: "Austin Haffenden"
+date: '`r Sys.Date()`'
+output: 
+  md_document:
+    variant: markdown_github
+---
+
+```{r setup, include=FALSE}
+```
+## Calculation of the Half-Life of a Mean-Reverting Time Series
+
 % 
 % written by:
 % Ernest Chan
 %
-% Author of “Quantitative Trading: 
-% How to Start Your Own Algorithmic Trading Business”
+% Author of ?Quantitative Trading: 
+% How to Start Your Own Algorithmic Trading Business?
 %
 % ernest@epchan.com
 % www.epchan.com

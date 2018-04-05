@@ -1,3 +1,16 @@
+---
+title: "echan_ex7.4: Principal Component Analysis as an Example of a Factor Model
+author: "Austin Haffenden"
+date: '`r Sys.Date()`'
+output: 
+  md_document:
+    variant: markdown_github
+---
+
+```{r setup, include=FALSE}
+```
+
+## Principal Component Analysis as an Example of a Factor Model
 clear;
 
 lookback=252; % use lookback days as estimation (training) period for determining factor exposures.
