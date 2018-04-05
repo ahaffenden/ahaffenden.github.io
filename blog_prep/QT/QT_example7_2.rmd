@@ -1,56 +1,131 @@
-% 
-% written by:
-% Ernest Chan
-%
-% Author of �Quantitative Trading: 
-% How to Start Your Own Algorithmic Trading Business�
-%
-% ernest@epchan.com
-% www.epchan.com
+---
+title: "echan_ex7.2: How to Form a Good Cointegrating and Mean-Reverting Pair of Stocks"
+author: "Austin Haffenden"
+date: '`r Sys.Date()`'
+output: 
+  md_document:
+    variant: markdown_github
+---
 
-clear; % make sure previously defined variables are erased.
- 
-[num, txt]=xlsread('GLD'); % read a spreadsheet named "GLD.xls" into MATLAB. 
- 
-tday1=txt(2:end, 1); % the first column (starting from the second row) is the trading days in format mm/dd/yyyy.
- 
-tday1=datestr(datenum(tday1, 'mm/dd/yyyy'), 'yyyymmdd'); % convert the format into yyyymmdd.
- 
-tday1=str2double(cellstr(tday1)); % convert the date strings first into cell arrays and then into numeric format.
- 
-adjcls1=num(:, end); % the last column contains the adjusted close prices.
-  
-[num2, txt2]=xlsread('GDX'); % read a spreadsheet named "GDX.xls" into MATLAB. 
- 
-tday2=txt2(2:end, 1); % the first column (starting from the second row) is the trading days in format mm/dd/yyyy.
- 
-tday2=datestr(datenum(tday2, 'mm/dd/yyyy'), 'yyyymmdd'); % convert the format into yyyymmdd.
- 
-tday2=str2double(cellstr(tday2)); % convert the date strings first into cell arrays and then into numeric format.
+```{r setup, include=FALSE}
+```
 
-adjcls2=num2(:, end);
+##How to Form a Good Cointegrating and Mean-Reverting Pair of Stocks
 
-tday=union(tday1, tday2); % find all the days when either GLD or GDX has data.
+If you long one security and short another one in the same industry group and
+in the right proportion, sometimes the combination (or “spread”) becomes a 
+stationary series.
 
-[foo idx idx1]=intersect(tday, tday1);
+A stationary series is an excellent candidate for a mean-reverting strategy. 
+This example teaches you how to determine if two price series are cointegrated 
+and, if so, how to find the optimal “hedge ratio” (i.e., the number of shares 
+of the second security versus one share of the first security).
 
-adjcls=NaN(length(tday), 2); % combining the two price series
+The main method used to test for cointegration is called the cointegrating 
+augmented Dickey-Fuller test, hence the function name cadf. A detailed
+description of this method can be found in the manual also available on the
+same web site mentioned earlier.
 
-adjcls(idx, 1)=adjcls1(idx1);
+The following program is available online as epchan.com/book/ example7 2.m
 
-[foo idx idx2]=intersect(tday, tday2);
+This is taken from exercise 7.2 of E.Chans book Quantitative Trading. 
 
-adjcls(idx, 2)=adjcls2(idx2);
+```{r cl_libs}
+rm(list = ls())
+library(CADFtest)
+```
 
-baddata=find(any(~isfinite(adjcls), 2)); % days where any one price is missing
+```{r data_in}
 
-tday(baddata)=[];
+# read a spreadsheet named "GLD.xls" into MATLAB. 
+gld_in <- read.csv(file.path("data", "GLD.csv"))
 
-adjcls(baddata, :)=[];
+# the first column (starting from the second row) is the trading days in
+# format mm/dd/yyyy.
+tday1 <- gld_in$Date
 
-vnames=strvcat('GLD', 'GDX');
+# convert the format into yyyymmdd.
+tday1 <- format(as.Date(tday1, "%d/%m/%Y"), "%Y%m%d")
 
-res=cadf(adjcls(:, 1), adjcls(:, 2), 0, 1); % run cointegration check using augmented Dickey-Fuller test
+# convert the date strings first into cell arrays and then into numeric format.
+tday1 <- as.numeric(as.character(tday1))
+
+# the last column contains the adjusted close prices.
+adjcls1 <- gld_in$Adj.Close
+
+# read a spreadsheet named "GDX.xls" into MATLAB. 
+gdx_in <- read.csv(file.path("data", "GDX.csv"))
+
+# the first column (starting from the second row) is the trading days in 
+# format mm/dd/yyyy.
+tday2 <- gdx_in$Date
+
+# convert the format into yyyymmdd.
+tday2 <- format(as.Date(tday2, "%d/%m/%Y"), "%Y%m%d")
+
+# convert the date strings first into cell arrays and then into numeric format.
+tday2 <- as.numeric(as.character(tday2))
+
+# the last column contains the adjusted close prices.
+adjcls2 <- gdx_in$Adj.Close
+
+
+```
+
+```{r merge}
+# find all the days when either GLD or GDX has data.
+tday <- sort(union(tday1, tday2))
+adjcls <- matrix(NaN, length(tday), 2)
+#========================================
+# tday1
+foo <- dplyr::intersect(tday1, tday)
+
+# idx1 is the indices of tday1
+idx1 <- match(foo, tday1)
+
+# idx is the indices of tday
+idx <- match(foo, tday)
+
+adjcls[idx, 1] <- adjcls1[idx1]
+
+#========================================
+# tday2
+foo <- dplyr::intersect(tday2, tday)
+
+# idx1 is the indices of tday2
+idx2 <- match(foo, tday2)
+
+# idx is the indices of tday
+idx <- match(foo, tday)
+
+adjcls[idx, 2] <- adjcls2[idx2]
+```
+
+```{r calcs}
+#========================================
+
+# days where any one price is missing
+baddata <- which(rowSums(is.na(adjcls))>0)
+
+# eliminate days when any return is missing
+#ret <- ret[-baddata,]
+tday <- tday[-baddata]
+adjcls <- adjcls[-baddata,]
+
+vnames <- c('GLD', 'GDX')
+
+```
+
+```{r cadf}
+# run cointegration check using augmented Dickey-Fuller test
+# res=cadf(adjcls(:, 1), adjcls(:, 2), 0, 1); 
+res <- CADFtest::CADFtest(adjcls[,1]~adjcls[,2)
+res
+
+```
+
+
+
 
 prt(res, vnames); 
 
