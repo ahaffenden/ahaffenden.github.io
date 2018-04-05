@@ -29,6 +29,7 @@ This file calculates M, C, and F* (F* = C^-1*M), where:
 ```{r cl_libs, message=FALSE}
 rm(list = ls()) # clear the workspace
 library(dplyr)
+library(echanFuncs)
 ```
 
 ```{r data_in}
@@ -44,7 +45,7 @@ tday1 <- oih_in$Date
 tday1 <- format(as.Date(tday1, "%d-%m-%Y"), "%Y%m%d")
 
 # convert the date strings first into cell arrays and then into numeric format.
-tday1 <- rev(as.numeric(as.character(tday1)))
+tday1 <- as.numeric(as.character(tday1))
 
 # the last column contains the adjusted close prices.
 adjcls1 <- oih_in$Adj.Close
@@ -87,6 +88,7 @@ adjcls3 <- rth_in$Adj.Close
 # merge these data - tday is the same as octave: tested
 tday <- union(tday1, tday2)
 tday <- union(tday, tday3)
+tday <- sort(tday) # this brings it in line with echan
 
 adjcls <- matrix(NaN, length(tday), 3)
 
@@ -95,10 +97,10 @@ adjcls <- matrix(NaN, length(tday), 3)
 foo <- dplyr::intersect(tday1, tday)
 
 # idx1 is the indices of tday1
-idx1 <- tday1 %in% foo 
+idx1 <- match(foo, tday1)
 
 # idx is the indices of tday
-idx <- tday %in% foo
+idx <- match(foo, tday)
 
 adjcls[idx, 1] <- adjcls1[idx1]
 
@@ -107,10 +109,10 @@ adjcls[idx, 1] <- adjcls1[idx1]
 foo <- dplyr::intersect(tday2, tday)
 
 # idx1 is the indices of tday2
-idx2 <- tday2 %in% foo 
+idx2 <- match(foo, tday2)
 
 # idx is the indices of tday
-idx <- tday %in% foo
+idx <- match(foo, tday)
 
 adjcls[idx, 2] <- adjcls2[idx2]
 
@@ -121,55 +123,62 @@ tail(adjcls)
 foo <- dplyr::intersect(tday3, tday)
 
 # idx1 is the indices of tday3
-idx3 <- tday3 %in% foo 
+idx3 <- match(foo, tday3)
 
 # idx is the indices of tday
-idx <- tday %in% foo
+idx <- match(foo, tday)
 
 adjcls[idx, 3] <- adjcls3[idx3]
 
-head(adjcls, 60)
+head(adjcls)
 tail(adjcls)
 
 ```
 
 ```{r calcs}
-ret=(adjcls-lag1(adjcls))./lag1(adjcls); % returns
+# returns
+# ret=(adjcls-lag1(adjcls))./lag1(adjcls); 
+ret <- (adjcls - lag1(adjcls)) / lag1(adjcls)
 
-baddata=find(any(~isfinite(ret), 2)); % days where any one return is missing
+# days where any one return is
+# baddata=find(any(~isfinite(ret), 2));  missing
+baddata <- which(rowSums(is.na(ret))>0)
 
-ret(baddata, :)=[]; % eliminate days where any one return is missing
+# eliminate days where any one return is missing
+# ret(baddata, :)=[]; 
+ret <- ret[-baddata,]
 
-excessRet=ret-repmat(0.04/252, size(ret)); % excess returns: assume annualized risk free rate is 4%
+library(matlab)
+# excess returns: assume annualized risk free rate is 4%
+excessRet=ret-repmat(0.04/252, size(ret)); 
 
-M=252*mean(excessRet, 1)' % annualized mean excess returns
-% M =
-% 
-%     0.1396
-%     0.0294
-%    -0.0073
+# annualized mean excess returns
+M <- 252*colMeans(excessRet, 1)
+M
+# 0.139568072  0.029400294 -0.007346459
 
-C=252*cov(excessRet) % annualized covariance matrix
-% C =
-% 
-%     0.1109    0.0200    0.0183
-%     0.0200    0.0372    0.0269
-%     0.0183    0.0269    0.0420
+# annualized covariance matrix
+C <- 252*cov(excessRet)
+C
+# [1,] 0.11090093 0.02001371 0.01825486
+# [2,] 0.02001371 0.03716455 0.02689284
+# [3,] 0.01825486 0.02689284 0.04196684
 
-F=inv(C)*M % Kelly optimal leverages
-% F =
-% 
-%     1.2919
-%     1.1723
-%    -1.4882
+library(matlib)
+# Kelly optimal leverages
+F <- colSums(inv(C)*M)
+F
+# 1.291908  1.172265 -1.488213
 
-g=0.04+F'*C*F/2 % Maximum annualized compounded growth rate
-% g =
-% 
-%     0.1529
+# Maximum annualized compounded growth rate
+#g=0.04+F'*C*F/2 
+g <- 0.04 + F%*%C%*%F/2
+g
+# g = 0.1529
 
-S=sqrt(F'*C*F) % Sharpe ratio of portfolio
-% S =
-% 
-%     0.4751
+# Sharpe ratio of portfolio
+#S=sqrt(F'*C*F) 
+S <- sqrt(F%*%C%*%F)
+S
+# S = 0.4751
 ```
