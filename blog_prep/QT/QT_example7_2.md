@@ -95,16 +95,18 @@ vnames <- c('GLD', 'GDX')
 
 ``` r
 # run cointegration check using augmented Dickey-Fuller test
-# can't find a direct function to do this so:
+# can't find a direct function to do this so taken from quantstart (2018)
 
-# taken from https://www.quantstart.com/articles/Cointegrated-Augmented-Dickey-Fuller-Test-for-Pairs-Trading-Evaluation-in-R
-
-# it is unclear as to which series is the dependent variable and which is the independent variable for the regression. Thus we will try both and make a choice based on the negativity of the ADF test statistic.
+# it is unclear as to which series is the dependent variable and which
+#is the independent variable for the regression. Thus we will try both
+# and make a choice based on the negativity of the ADF test statistic.
 
 comb1 <- lm(adjcls[,1]~adjcls[,2])
 comb2 <- lm(adjcls[,2]~adjcls[,1])
 
-# This will provide us with the intercept and regression coefficient for these pairs. We can plot the residuals and visually assess the stationarity of the series:
+# This will provide us with the intercept and regression coefficient for
+# these pairs. We can plot the residuals and visually assess the
+# stationarity of the series:
   
 plot(comb1$residuals, type="l")
 ```
@@ -163,11 +165,7 @@ tseries::adf.test(comb2$residuals, k=1)
     ## Dickey-Fuller = -4.3011, Lag order = 1, p-value = 0.01
     ## alternative hypothesis: stationary
 
-``` r
 "The ADF test statistic for GDX as the independent variable is smaller (more negative) than that for GDX as the independent variable and hence we will choose this as our linear combination for any future trading implementations."
-```
-
-    ## [1] "The ADF test statistic for GDX as the independent variable is smaller (more negative) than that for GDX as the independent variable and hence we will choose this as our linear combination for any future trading implementations."
 
 ``` r
 results <- lm(I(adjcls[,1])~0+adjcls[, 2])
@@ -203,3 +201,8 @@ abline(h = 0)
 ```
 
 ![](QT_example7_2_files/figure-markdown_github/hedge-1.png)
+
+References
+----------
+
+quantstart, 2018 <https://www.quantstart.com/articles/Cointegrated-Augmented-Dickey-Fuller-Test-for-Pairs-Trading-Evaluation-in-R>; accessed 05Apr18
