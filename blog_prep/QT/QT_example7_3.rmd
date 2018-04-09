@@ -11,101 +11,163 @@ output:
 ```
 
 ## Testing the Cointegration versus Correlation Properties between KO and PEP
-% 
-% written by:
-% Ernest Chan
-%
-% Author of ?Quantitative Trading: 
-% How to Start Your Own Algorithmic Trading Business?
-%
-% ernest@epchan.com
-% www.epchan.com
 
-clear; % make sure previously defined variables are erased.
+The cointegration test for KO and PEP is the same as that for PEP and KO in 
+Example 7.2. 
+
+The cointegration result should shows that the t-statistic for the augmented 
+Dicky-Fuller test is −2.14, larger than the 10 percent critical value of 
+−3.038, meaning that there is a less than 90 percent probability that these 
+two time series are cointegrated.
+
+We will then further test for correlation between the two time series
+
+This is taken from exercise 7.3 of E.Chans book Quantitative Trading. 
+
+```{r cl_libs}
+rm(list = ls())
+library(tseries)
+library(echanFuncs)
+```
+
+```{r data_in}
  
-[num, txt]=xlsread('KO'); % read a spreadsheet named "KO.xls" into MATLAB. 
- 
-tday1=txt(2:end, 1); % the first column (starting from the second row) is the trading days in format mm/dd/yyyy.
- 
-tday1=datestr(datenum(tday1, 'mm/dd/yyyy'), 'yyyymmdd'); % convert the format into yyyymmdd.
- 
-tday1=str2double(cellstr(tday1)); % convert the date strings first into cell arrays and then into numeric format.
- 
-adjcls1=num(:, end); % the last column contains the adjusted close prices.
- 
-[num2, txt2]=xlsread('PEP'); % read a spreadsheet named "PEP.xls" into MATLAB. 
- 
-tday2=txt2(2:end, 1); % the first column (starting from the second row) is the trading days in format mm/dd/yyyy.
- 
-tday2=datestr(datenum(tday2, 'mm/dd/yyyy'), 'yyyymmdd'); % convert the format into yyyymmdd.
- 
-tday2=str2double(cellstr(tday2)); % convert the date strings first into cell arrays and then into numeric format.
+# read a spreadsheet named "KO.xls" into MATLAB. 
+ko_in <- read.csv(file.path("data", "KO.csv"))
 
-adjcls2=num2(:, end);
+# the first column (starting from the second row) is the trading days in
+# format mm/dd/yyyy.
+tday1 <- ko_in$Date
 
-tday=union(tday1, tday2); % find all the days when either KO or PEP has data.
+# convert the format into yyyymmdd.
+tday1 <- format(as.Date(tday1, "%m/%d/%Y"), "%Y%m%d")
 
-[foo idx idx1]=intersect(tday, tday1);
+# convert the date strings first into cell arrays and then into numeric format.
+tday1 <- as.numeric(as.character(tday1))
 
-adjcls=NaN(length(tday), 2); % combining the two price series
+# the last column contains the adjusted close prices.
+adjcls1 <- ko_in$Adj.Close
 
-adjcls(idx, 1)=adjcls1(idx1);
+# read a spreadsheet named "PEP.xls" into MATLAB. 
+pep_in <- read.csv(file.path("data", "PEP.csv"))
 
-[foo idx idx2]=intersect(tday, tday2);
+# the first column (starting from the second row) is the trading days in 
+# format mm/dd/yyyy.
+tday2 <- pep_in$Date
 
-adjcls(idx, 2)=adjcls2(idx2);
+# convert the format into yyyymmdd.
+tday2 <- format(as.Date(tday2, "%m/%d/%Y"), "%Y%m%d")
 
-baddata=find(any(~isfinite(adjcls), 2)); % days where any one price is missing
+# convert the date strings first into cell arrays and then into numeric format.
+tday2 <- as.numeric(as.character(tday2))
 
-tday(baddata)=[];
+# the last column contains the adjusted close prices.
+adjcls2 <- pep_in$Adj.Close
 
-adjcls(baddata, :)=[];
+```
 
-vnames=strvcat('KO', 'PEP');
+```{r merge}
+# find all the days when either KO or PEP has data.
+tday <- sort(union(tday1, tday2))
+adjcls <- matrix(NaN, length(tday), 2)
+#========================================
+# tday1
+foo <- dplyr::intersect(tday1, tday)
 
-res=cadf(adjcls(:, 1), adjcls(:, 2), 0, 1); % run cointegration check using augmented Dickey-Fuller test
+# idx1 is the indices of tday1
+idx1 <- match(foo, tday1)
 
-prt(res, vnames); 
+# idx is the indices of tday
+idx <- match(foo, tday)
 
-% Output from cadf function:
+adjcls[idx, 1] <- adjcls1[idx1]
 
-%  Augmented DF test for co-integration variables:                        KO ,PEP  
-% CADF t-statistic        # of lags   AR(1) estimate 
-%      -2.14258438                1        -0.001167 
-% 
-%    1% Crit Value    5% Crit Value   10% Crit Value 
-%           -3.880           -3.359           -3.038 
+#========================================
+# tday2
+foo <- dplyr::intersect(tday2, tday)
+
+# idx1 is the indices of tday2
+idx2 <- match(foo, tday2)
+
+# idx is the indices of tday
+idx <- match(foo, tday)
+
+adjcls[idx, 2] <- adjcls2[idx2]
+```
+
+```{r calcs}
+#========================================
+
+# days where any one price is missing
+baddata <- which(rowSums(is.na(adjcls))>0)
+
+# eliminate days when any return is missing
+#ret <- ret[-baddata,]
+tday <- tday[-baddata]
+adjcls <- adjcls[-baddata,]
+
+vnames <- c('KO', 'PEP')
+
+```
+
+```{r cadf}
+# run cointegration check using augmented Dickey-Fuller test
+# can't find a direct function to do this so taken from quantstart (2018)
+
+# it is unclear as to which series is the dependent variable and which
+#is the independent variable for the regression. Thus we will try both
+# and make a choice based on the negativity of the ADF test statistic.
+
+comb1 <- lm(adjcls[,1]~adjcls[,2])
+comb2 <- lm(adjcls[,2]~adjcls[,1])
+
+# This will provide us with the intercept and regression coefficient for
+# these pairs. We can plot the residuals and visually assess the
+# stationarity of the series:
+  
+plot(comb1$residuals, type="l")
+
+comb1
+
+comb2
+
+tseries::adf.test(comb1$residuals, k=1)
+tseries::adf.test(comb2$residuals, k=1)
+```
+
+```{r hedge}
+results <- lm(I(adjcls[,1])~0+adjcls[, 2])
+results
+
+# A hedgeRatio of 1.0114 was found. I.e. KO=1.0114*PEP + z, where z can be 
+# interpreted as the spread KO-1.0114*PEP, which is not stationary here.
+hedgeRatio <- results$coefficients
+hedgeRatio
+
+# plot the residuals
+z <- results$residuals
+plot(z, type = 'l', xlab = "Date (index)", ylab = "Spread ($)", 
+     main = "Spread between KO and PEP")
+abline(h = 0)
+```
+
+```{r correl}
+# A test for correlation.
+# Should be 
+#   1.0000    0.4849
+#   0.4849    1.0000
+dailyReturns <- (adjcls-lag1(adjcls))/lag1(adjcls)
+corrcoef <- cor(dailyReturns[2:nrow(dailyReturns), ])
+corrcoef
+```
+
+```{r pvals}
+# The two time series are significantly correlated.
+# corr.test: 0 indicating no association.
+corr_p <- cor.test(dailyReturns[2:nrow(dailyReturns), 1], 
+                   dailyReturns[2:nrow(dailyReturns), 2])
+corr_p
+```
 
 
-% The t-statistic of -2.14 is larger than the 10% Crit Value of -3.038
-% which means that there is a less than 90%
-% probability that these 2 time series are cointegrated.
-
-results=ols(adjcls(:, 1), adjcls(:, 2)); 
-
-hedgeRatio=results.beta
-z=results.resid;
-
-% A hedgeRatio of 1.0114 was found. I.e. KO=1.0114*PEP + z, where z can be interpreted as the
-% spread KO-1.0114*PEP, which is not stationary here.
-
-plot(z); % This should produce a chart similar to Figure 7.2 (except for the titles and labels).
-
-% A test for correlation.
-dailyReturns=(adjcls-lag1(adjcls))./lag1(adjcls);
-[R,P]=corrcoef(dailyReturns(2:end, :));
-
-% R =
-% 
-%     1.0000    0.4849
-%     0.4849    1.0000
-% 
-% 
-% P =
-% 
-%      1     0
-%      0     1
-
-% The P value of 0 indicates that the two time series are significantly
-% correlated.
 
