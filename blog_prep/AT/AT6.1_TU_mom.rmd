@@ -7,41 +7,61 @@ output:
     variant: markdown_github
 ---
 
+##Finding correlations between returns of different time frames
+
+```{r cl_libs}
+rm(list = ls())
+library(R.matlab)
 
 
-clear;
+```
 
-load('../Data/inputDataOHLCDaily_20120511', 'syms', 'tday', 'cl');
-% load('//dellquad/Futures_data/inputDataOHLCDaily_20120815', 'syms', 'tday', 'cl');
-idx=strmatch('TU', syms, 'exact');
+```{r data_in}
+list.files("data")
+data_in <- readMat("data/inputDataOHLCDaily_20120511.mat")
+str(data_in)
 
-tday=tday(:, idx);
-cl=cl(:, idx);
+syms <- data_in$syms
+tday <- data_in$tday
+cl <- data_in$cl
 
-% Correlation tests
-for lookback=[1 5 10 25 60 120 250]
-    for holddays=[1 5 10 25 60 120 250]
+idx <- match("TU", unlist(syms))
+
+tday <- tday[, idx];
+cl <- cl[, idx];
+
+```
+
+## The correlation tests
+
+```{r corr_tests}
+
+for (lookback in c(1, 5, 10, 25, 60, 120, 250)) {
+    for (holddays in c(1, 5, 10, 25, 60, 120, 250)) {
+      
         ret_lag=(cl-backshift(lookback, cl))./backshift(lookback, cl);
-        ret_fut=(fwdshift(holddays, cl)-cl)./cl;
-        badDates=any([isnan(ret_lag) isnan(ret_fut)], 2);
-        ret_lag(badDates)=[];
-        ret_fut(badDates)=[];
-        
-        if (lookback >= holddays)
-            indepSet=[1:holddays:length(ret_lag)];
-        else
-            indepSet=[1:lookback:length(ret_lag)];
-        end
+        # ret_fut=(fwdshift(holddays, cl)-cl)./cl;
+        # badDates=any([isnan(ret_lag) isnan(ret_fut)], 2);
+        # ret_lag(badDates)=[];
+        # ret_fut(badDates)=[];
+        # 
+        # if (lookback >= holddays)
+        #     indepSet=[1:holddays:length(ret_lag)];
+        # else
+        #     indepSet=[1:lookback:length(ret_lag)];
+        # end
+        # 
+        # ret_lag=ret_lag(indepSet);
+        # ret_fut=ret_fut(indepSet);
+        #     
+        # [cc, pval]=corrcoef(ret_lag, ret_fut);
+        # %         fprintf(1, 'lookback=%3i holddays=%3i cc=%7.4f pval=%6.4f\n', lookback, holddays, cc(1, 2), pval(1, 2));
+        # fprintf(1, '%3i\t%3i\t%7.4f\t%6.4f\n',  lookback, holddays, cc(1, 2), pval(1, 2));
+  }
+}
+```
 
-        ret_lag=ret_lag(indepSet);
-        ret_fut=ret_fut(indepSet);
-            
-        [cc, pval]=corrcoef(ret_lag, ret_fut);
-        %         fprintf(1, 'lookback=%3i holddays=%3i cc=%7.4f pval=%6.4f\n', lookback, holddays, cc(1, 2), pval(1, 2));
-        fprintf(1, '%3i\t%3i\t%7.4f\t%6.4f\n',  lookback, holddays, cc(1, 2), pval(1, 2));
-    end
-end
-
+```{r hurst_vratio}
 % Hurst exponent and Variance ratio test
 H=genhurst(log(cl), 2);
 fprintf(1, 'H2=%f\n', H);
@@ -51,7 +71,9 @@ fprintf(1, 'H2=%f\n', H);
 
 fprintf(1, 'h=%i\n', h); % h=1 means rejection of random walk hypothesis, 0 means it is a random walk.
 fprintf(1, 'pValue=%f\n', pValue); % pValue is essentially the probability that the null hypothesis (random walk) is true.
+```
 
+```{r ...}
 lookback=250;
 holddays=25;
 
