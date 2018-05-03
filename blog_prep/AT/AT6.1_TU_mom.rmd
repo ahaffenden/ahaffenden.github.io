@@ -14,7 +14,8 @@ rm(list = ls())
 detach(package:echanFuncs, unload = TRUE)
 library(echanFuncs)
 library(R.matlab)
-
+library(pracma)
+library(vrtest)
 
 ```
 
@@ -37,6 +38,8 @@ cl <- cl[, idx];
 ## The correlation tests
 
 ```{r corr_tests}
+
+out_dat <- data.frame(lookback = NA, holddays = NA, cc = NA, pval = NA)
 
 for (lookback in c(1, 5, 10, 25, 60, 120, 250)) {
     for (holddays in c(1, 5, 10, 25, 60, 120, 250)) {
@@ -67,67 +70,79 @@ for (lookback in c(1, 5, 10, 25, 60, 120, 250)) {
         cc <- corr_res$estimate
         pval <- corr_res$p.value
 
-        # %         fprintf(1, 'lookback=%3i holddays=%3i cc=%7.4f pval=%6.4f\n', lookback, holddays, cc(1, 2), pval(1, 2));
-        # fprintf(1, '%3i\t%3i\t%7.4f\t%6.4f\n',  lookback, holddays, cc(1, 2), pval(1, 2));
-        cat(lookback, holddays, cc, pval, "\n")
+        out_dat <- rbind(out_dat, data.frame(lookback, holddays, cc, pval))
         
   }
 }
+out_dat
 ```
 
 ```{r hurst_vratio}
-% Hurst exponent and Variance ratio test
-H=genhurst(log(cl), 2);
-fprintf(1, 'H2=%f\n', H);
+# Hurst exponent and Variance ratio test
+# H=genhurst(log(cl), 2);
+# fprintf(1, 'H2=%f\n', H);
+H = hurstexp(log(cl))
 
-% Variance ratio test from Matlab Econometrics Toolbox
-[h,pValue]=vratiotest(log(cl));
+# Variance ratio test from Matlab Econometrics Toolbox
+# [h,pValue]=vratiotest(log(cl));
+Auto.VR(log(cl))
 
-fprintf(1, 'h=%i\n', h); % h=1 means rejection of random walk hypothesis, 0 means it is a random walk.
-fprintf(1, 'pValue=%f\n', pValue); % pValue is essentially the probability that the null hypothesis (random walk) is true.
+# fprintf(1, 'h=%i\n', h); % h=1 means rejection of random walk hypothesis, 0 means it is a random walk.
+# fprintf(1, 'pValue=%f\n', pValue); % pValue is essentially the probability that the null hypothesis (random walk) is true.
 ```
 
 ```{r ...}
-lookback=250;
-holddays=25;
+lookback <- 250
+holddays <- 25
 
-longs=cl > backshift(lookback, cl)  ;
-shorts=cl < backshift(lookback, cl) ;
+longs <- cl > backshift(lookback, cl)  
+longs[is.na(longs)] <- FALSE
+shorts <- cl < backshift(lookback, cl)
+shorts[is.na(shorts)] <- FALSE
 
-pos=zeros(length(cl), 1);
+pos <- rep(0, length(cl))
 
-for h=0:holddays-1
-    long_lag=backshift(h, longs);
-    long_lag(isnan(long_lag))=false;
-    long_lag=logical(long_lag);
+for (h in 0:(holddays-1)) {
+  print(h)
+    long_lag <- backshift(h, longs)
+    long_lag[is.nan(long_lag)] <- FALSE
+    long_lag <- as.logical(long_lag)
     
-    short_lag=backshift(h, shorts);
-    short_lag(isnan(short_lag))=false;
-    short_lag=logical(short_lag);
+    short_lag <- backshift(h, shorts)
+    short_lag[is.nan(short_lag)] <- FALSE
+    short_lag <- as.logical(short_lag)
     
-    pos(long_lag)=pos(long_lag)+1;
-    pos(short_lag)=pos(short_lag)-1;
-end
+    pos[long_lag] <- pos[long_lag]+1
+    pos[short_lag] <- pos[short_lag]-1
+}
 
-ret=(backshift(1, pos).*(cl-backshift(1, cl))./backshift(1, cl))/holddays;
+#ret=(backshift(1, pos).*(cl-backshift(1, cl))./backshift(1, cl))/holddays;
+ret <- (backshift(1, pos)*(cl-backshift(1, cl))/backshift(1, cl))/holddays
 
-ret(isnan(ret))=0;
-idx=find(tday==20090102);
-% idx=1;
+ret[is.nan(ret)] <- 0
+idx <- which(tday==20090102)
+# idx=1;
 
-cumret=cumprod(1+ret(idx:end))-1;
+cumret <- cumprod(1+ret[idx:length(ret)])-1
 
-plot(cumret);
+plot(cumret)
 
-fprintf(1, 'Avg Ann Ret=%7.4f Ann Volatility=%7.4f Sharpe ratio=%4.2f \n',252*smartmean(ret(idx:end)), sqrt(252)*smartstd(ret(idx:end)), sqrt(252)*smartmean(ret(idx:end))/smartstd(ret(idx:end)));
-fprintf(1, 'APR=%10.4f\n', prod(1+ret(idx:end)).^(252/length(ret(idx:end)))-1);
-[maxDD maxDDD]=calculateMaxDD(cumret);
-fprintf(1, 'Max DD =%f Max DDD in days=%i\n\n', maxDD, round(maxDDD));
-fprintf(1, 'Kelly f=%f\n', mean(ret(idx:end))/std(ret(idx:end))^2);
-
-% Avg Ann Ret= 0.0167 Sharpe ratio=1.04 
-% APR=    0.0167
-% Max DD =-0.024847 Max DDD in days=343
-% Kelly f=64.919535
+# Avg Ann Ret = 0.0167 
+# Sharpe ratio =1.04 
+# APR = 0.0167
+# Max DD = -0.024847 
+# Max DDD in days = 343
+# Kelly f = 64.919535
 
 
+# Avg Ann Ret: 252*smartmean(ret(idx:end))
+# Ann Volatility: sqrt(252)*smartstd(ret(idx:end))
+# Sharpe ratio: sqrt(252)*smartmean(ret(idx:end))/smartstd(ret(idx:end)));
+# APR: prod(1+ret(idx:end)).^(252/length(ret(idx:end)))-1)
+# maxDDD: calculateMaxDD(cumret)
+# maxDD: round(maxDDD))
+# Kelly: mean(ret(idx:end))/std(ret(idx:end))^2)
+
+
+
+```
