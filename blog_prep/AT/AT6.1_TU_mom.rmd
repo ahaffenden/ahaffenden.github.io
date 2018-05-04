@@ -11,7 +11,7 @@ output:
 
 ```{r cl_libs}
 rm(list = ls())
-detach(package:echanFuncs, unload = TRUE)
+#detach(package:echanFuncs, unload = TRUE)
 library(echanFuncs)
 library(R.matlab)
 library(pracma)
@@ -136,13 +136,27 @@ plot(cumret)
 
 
 # Avg Ann Ret: 252*smartmean(ret(idx:end))
-# Ann Volatility: sqrt(252)*smartstd(ret(idx:end))
-# Sharpe ratio: sqrt(252)*smartmean(ret(idx:end))/smartstd(ret(idx:end)));
-# APR: prod(1+ret(idx:end)).^(252/length(ret(idx:end)))-1)
-# maxDDD: calculateMaxDD(cumret)
-# maxDD: round(maxDDD))
-# Kelly: mean(ret(idx:end))/std(ret(idx:end))^2)
+av_ann_ret <- 252*mean(ret[idx:length(ret)])
+# 0.01404162
 
+# Ann Volatility: sqrt(252)*smartstd(ret(idx:end))
+ann_vol <- sqrt(252)*sd(ret[idx:length(ret)])
+# 0.01183211
+
+# Sharpe ratio: sqrt(252)*smartmean(ret(idx:end))/smartstd(ret(idx:end)));
+sh_rat <- sqrt(252)*mean(ret[idx:length(ret)])/sd(ret[idx:length(ret)])
+# 1.186738
+
+# APR: prod(1+ret(idx:end)).^(252/length(ret(idx:end)))-1)
+apr <- prod(1+ret[idx:length(ret)])^(252/length(ret[idx:length(ret)]))-1
+
+# maxDDD: calculateMaxDD(cumret)
+maxDD_op <- calculateMaxDD(cumret)
+maxDD <- maxDD_op[1] # slight difference in value and opposite sign
+maxDDD <- maxDD_op[2]
+
+# Kelly: mean(ret(idx:end))/std(ret(idx:end))^2)
+kelly <- mean(ret[idx:length(ret)])/sd(ret[idx:length(ret)])^2
 
 
 ```
